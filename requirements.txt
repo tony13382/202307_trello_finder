@@ -1,0 +1,10 @@
+flask
+sentence_transformers
+torch
+transformers
+anthropic
+openai
+pymongo
+pymilvus
+pandas
+openpyxl
