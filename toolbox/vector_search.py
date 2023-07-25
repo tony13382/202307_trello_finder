@@ -1,13 +1,22 @@
-# Import modules
-import asyncio
+# Import modules of Milvus
 from pymilvus import connections, Collection, utility
+# Setup environment value
+import os
+from dotenv import load_dotenv
+load_dotenv()
+milvus_path = os.getenv("milvus_path")
+milvus_port = os.getenv("milvus_port")
+milvus_db_name = os.getenv("milvus_db_name")
+vector_index_type = os.getenv("vector_index_type")
+vector_metric_type = os.getenv("vector_metric_type")
+
 
 # Connect to milvus server (connector)
 conn = connections.connect(
     alias="default",
-    host='localhost',
-    port='19530',
-    db_name="default"
+    host=milvus_path,
+    port=milvus_port,
+    db_name=milvus_db_name
 )
 
 # 設定 Milvus collection 名稱
@@ -25,8 +34,8 @@ def search_vector(query_vector, limit=10, offset=0):
             data = [query_vector], 
             anns_field = "value", 
             param = {
-                "index_type": "FLAT",
-                "metric_type": "IP", 
+                "index_type": vector_index_type,
+                "metric_type": vector_metric_type, 
                 "params": {"nprobe": 1},      
             },
             limit = limit, 

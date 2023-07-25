@@ -1,5 +1,4 @@
 # Import modules
-import asyncio
 from sentence_transformers import SentenceTransformer, util
 
 # Select model by transformer
