@@ -10,63 +10,69 @@
 
 ### Create embedding
 **Request Value**
-| name | type |
-| ---- | ---- |
-| sentence | String |
+``` json
+{
+    "sentence" : String,
+}
+```
 
 **Response Value**
-| name | type |
-| ---- | ---- |
-| state | Boolean |
-| result | Array(768) |
+``` json
+{
+    "state" : Boolean,
+    "result" : Array(768),
+}
+```
 
 ### List top k similarity
 **Request Value**
-| name | type |
-| ---- | ---- |
-| vector | Array(768) |
-| limit | Int |
-
-**Response Value**
-| name | type |
-| ---- | ---- |
-| state | Boolean |
-| result | Array(limit) |
-
-item in result list
 ``` json
 {
-    "id" : String,
-    "distance" : Float,
-    "preview" : String,
-    "track_id" : String,
+    "vector" : Array(768),
+    "limit" : Int,
+}
+```
+
+**Response Value**
+``` json
+{
+    "state" : Boolean,
+    "result" :  [
+        {
+            "id" : String,
+            "distance" : Float,
+            "preview" : String,
+            "track_id" : String,
+        } * Limit
+    ] 
 }
 ```
 
 ### List Article by Sentence
 **Request Value**
-| name | type |
-| ---- | ---- |
-| sentence | String |
-| limit | Int |
-| anthropic_setup | Boolean (預設為 False, True 時會使用 GPT 回答問題) |
-| openai_setup | Boolean (預設為 False, True 時會使用 GPT 回答問題)  |
-
-**Response Value**
-| name | type |
-| ---- | ---- |
-| state | Boolean |
-| result | Array(limit) |
-
-item in result list
 ``` json
 {
-    "id" : String,
-    "distance" : Float,
-    "preview" : String,
-    "track_id" : String,
-    "answer_by_anthropic" : String,
-    "answer_by_openai" : String,
+    "sentence" : String,
+    "limit" : Int,
+    "anthropic_setup" : Boolean, // 預設為 False, True 時會使用 Anthropic 回答問題
+    "openai_setup" : Boolean,  // 預設為 False, True 時會使用 ChatGPT 回答問題
+}
+```
+
+**Response Value**
+``` json
+{
+    "state" : Boolean,
+    "result" : [
+        {
+            "id" : String,
+            "distance" : Float,
+            "preview" : String,
+            "track_id" : String,
+            "answer_by_anthropic" : String,
+            "answer_by_openai" : String,
+        } * Limit
+    ],
 }
 ```
 
