@@ -5,6 +5,7 @@
 | Create embedding  | /api/vector | POST | 新增（轉換）一個向量 |
 | List top k similarity | /api/vector | GET | 獲取相近的文本（by vector） |
 | List Article by Sentence | /api/article | GET | 獲取相近的文本（by sentence） |
+| Webhook for Trello | /api/webhook | POST | Trello Webhook 運作單元 |
 
 ## API Request & Response
 

@@ -4,6 +4,12 @@ anthropic = Anthropic(api_key="sk-ant-api03-ppGWcm-ZsWeWpnz8N9q0Oz_nWJP3jJA52qUm
 import openai
 openai.api_key = "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"
 
+# https://huggingface.co/uer/roberta-base-chinese-extractive-qa
+from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
+RoBERTa_model = AutoModelForQuestionAnswering.from_pretrained('uer/roberta-base-chinese-extractive-qa')
+RoBERTa_tokenizer = AutoTokenizer.from_pretrained('uer/roberta-base-chinese-extractive-qa')
+RoBERTa_QA = pipeline('question-answering',model=RoBERTa_model, tokenizer=RoBERTa_tokenizer)
+
 
 def qa_by_anthropic(source_content, question):
     try:
@@ -44,6 +50,21 @@ def qa_by_openai(source_content,question):
             "value": response['choices'][0]['message']['content'],
         }
     except  Exception as exp:
+        return {
+            "state": False,
+            "value": str(exp),
+       }
+
+
+def qa_by_RoBERTa(source_content,question):
+    try:
+        RoBERTa_QA_input = {'question': "利用文件解答" + question, 'context': source_content}
+        result = RoBERTa_QA(RoBERTa_QA_input)
+        return {
+            "state": True,
+            "value": result["answer"],
+        }
+    except Exception as exp:
         return {
             "state": False,
             "value": str(exp),

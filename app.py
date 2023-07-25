@@ -6,15 +6,21 @@ from flask import render_template, jsonify
 from flask import request
 import json
 
+# Setup environment value
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 # SBERT 編碼模組
 from toolbox.embed import embedding_sentence
 # Milvus 向量搜尋與運算模組
 from toolbox.vector_search import search_vector
 # MongoDB 文章搜尋模組
-from toolbox.mongo_search import article_search
-# Anthropic GPT 回答模組
-from toolbox.gpt import qa_by_anthropic, qa_by_openai
-
+from toolbox.mongo_connector import article_search,add_trello_log
+# GPT 回答模組
+from toolbox.answer_core import qa_by_anthropic, qa_by_openai, qa_by_RoBERTa
+# Trello 模組
+from toolbox.trello_connector import updateDataToCard, addCommentToCard, addCommentWithPictureToCard
 
 app = Flask(__name__)
 
@@ -114,6 +120,7 @@ def vector_post():
 # limit : Int
 # anthropic_setup : Boolean (預設為 False, True 時會使用 GPT 回答問題)
 # openai_setup : Boolean (預設為 False, True 時會使用 GPT 回答問題) 
+# roBERTa_setup : Boolean (預設為 False, True 時會使用 GPT 回答問題)
 #-------------------
 # Response Value
 # state : Boolean
@@ -123,7 +130,7 @@ def vector_post():
 ####################
 
 # 預處理 Milvus 回傳的資料
-def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setup=False):
+def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setup=False,roBERTa_setup=False):
     return_array = []
     for item in req_array:
         # Use track_id to find Ariicle (Only one article)
@@ -138,28 +145,41 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
             }
             # Use Meta's content to answer question by gpt
             if anthropic_setup:
-                answer = qa_by_anthropic(article['value']['title'], sentence)
+                answer = qa_by_anthropic(article['value']['content'], sentence)
                 if(answer['state']):
                     insert_data["answer_by_anthropic"] = answer['value']
                 else:
                     return {
                         "state" : False,
                         "err_msg" : answer['value'],
-                        "show_msg" : "GPT 模組失敗，請聯絡工程人員",
+                        "show_msg" : "anthropic GPT 模組失敗，請聯絡工程人員",
                         "error_code" : 504,
                     }
             # Use Meta's content to answer question by openai
             if openai_setup:
-                answer = qa_by_openai(article['value']['title'], sentence)
+                answer = qa_by_openai(article['value']['content'], sentence)
                 if(answer['state']):
                     insert_data["answer_by_openai"] = answer['value']
                 else:
                     return {
                         "state" : False,
                         "err_msg" : answer['value'],
-                        "show_msg" : "GPT 模組失敗，請聯絡工程人員",
+                        "show_msg" : "openai GPT 模組失敗，請聯絡工程人員",
                         "error_code" : 504,
                     }
+            # Use Meta's content to answer question by RoBERTa
+            if roBERTa_setup:
+                answer = qa_by_RoBERTa(article['value']['content'], sentence)
+                if(answer['state']):
+                    insert_data["answer_by_RoBERTa"] = answer['value']
+                else:
+                    return {
+                        "state" : False,
+                        "err_msg" : answer['value'],
+                        "show_msg" : "RoBERTa GPT 模組失敗，請聯絡工程人員",
+                        "error_code" : 504,
+                    }
+
         else:
             print(article['value'], "cannot find")
         
@@ -174,13 +194,32 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
 def process_sentence_to_article_list(sentence,setup):
     # Get Embedding Vector
     q_vector = embedding_sentence(sentence)
-    # Get Anthropic Setup
-    anthropic_setup = setup["anthropic_setup"]
-    # Get OpenAI Setup
-    openai_setup = setup["openai_setup"]
+    
+    # Get Value Setup
+    if "limit" in setup:
+        limit = setup["limit"]
+    else:
+        limit = 10
+    
+    if "anthropic_setup" in setup:
+        anthropic_setup = setup["anthropic_setup"]
+    else:
+        anthropic_setup = False
+    
+    if "openai_setup" in setup:
+        openai_setup = setup["openai_setup"]
+    else:
+        openai_setup = False
+
+    if "roBERTa_setup" in setup:
+        roBERTa_setup = setup["roBERTa_setup"]
+    else:
+        roBERTa_setup = False
+    
+    
     # Search By Vector
     if(q_vector["state"]):
-        limit = int(request.args.get('limit'))
+        limit = int(limit)
     
         # Get Similar Article
         result = search_vector(q_vector["value"], limit=limit)
@@ -191,8 +230,9 @@ def process_sentence_to_article_list(sentence,setup):
                 return_array = process_milvus_result(
                     result['value'], 
                     sentence, 
-                    anthropic_setup=anthropic_setup,
-                    openai_setup=openai_setup
+                    anthropic_setup = anthropic_setup,
+                    openai_setup = openai_setup,
+                    roBERTa_setup = roBERTa_setup,
                 )
                 if(return_array['state']):
                     return {
@@ -235,14 +275,21 @@ def article_get():
     try:
         # Get Request Value
         sentence = request.args.get('sentence')
+        # Get Limit
+        get_limit = request.args.get('limit',10)
         # Get Anthropic Setup
         anthropic_setup = request.args.get('anthropic_setup',False)
         # Get OpenAI Setup
         openai_setup = request.args.get('openai_setup',False)
+        # Get RoBERTa Setup
+        roBERTa_setup = request.args.get('roBERTa_setup',False)
+
         # Get Search Result
         result = process_sentence_to_article_list(sentence,setup={
+            "limit" : get_limit,
             "anthropic_setup" : anthropic_setup,
             "openai_setup" : openai_setup,
+            "roBERTa_setup" : roBERTa_setup,
         })
         # Return Result
         return jsonify(result)
@@ -257,6 +304,72 @@ def article_get():
 
 
 # Webhook API
+trello_request_limit = int(os.getenv("trello_request_limit"))
+def process_webhook(data):
+    try:
+        # Convert Data
+        print(data)
+        user_input = data["user_input"]
+        card_id = data["card_id"]
+
+        # Get Search Result
+        anthropic_setup = bool(os.getenv("anthropic_setup"))
+        openai_setup = bool(os.getenv("openai_setup"))
+        roBERTa_setup = bool(os.getenv("roBERTa_setup"))
+
+        result_of_sentence = process_sentence_to_article_list(user_input,setup={
+            "limit" : trello_request_limit,
+            "anthropic_setup" : anthropic_setup,
+            "openai_setup" : openai_setup,
+            "roBERTa_setup" : roBERTa_setup,
+        })
+        
+        if(result_of_sentence['state']):
+            # Add Comment
+            for item in result_of_sentence['result']:
+                commit_msg = f"參考資料：\n[{item['title']}]({item['url']}) \n"
+                if(anthropic_setup):
+                    commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
+                if(openai_setup):
+                    commit_msg += f"參考回答 C ：\n{item['answer_by_openai']} \n"
+                # Add Comment
+                try:
+                    addCommentToCard(card_id,commit_msg)
+                except Exception as exp:
+                    return {
+                        "state" : False,
+                        "err_msg" : str(exp),
+                        "show_msg" : "[addCommentToCard] 留言失敗",
+                    }
+            
+            # List of All comment Done
+            try:
+                updateDataToCard(card_id, {
+                    "name" : f"[已完成] {user_input}",
+                })
+                return {
+                    "state" : True,
+                    "show_msg" : "留言成功",
+                }
+            except Exception as exp:
+                return {
+                    "state" : False,
+                    "err_msg" : str(exp),
+                    "show_msg" : "[updateDataToCard] 卡片更新失敗",
+                }
+        else:
+            return {
+                "state" : False,
+                "err_msg" : result_of_sentence['err_msg'],
+                "show_msg" : "[result_of_sentence] " + result_of_sentence['show_msg'],
+            }
+    except Exception as exp:
+        return {
+            "state" : False,
+            "err_msg" : str(exp),
+            "show_msg" : "[process_webhook] 資料處理失敗，請聯絡工程人員",
+        }
+
 @app.route('/webhook',methods=['POST','HEAD','GET'])
 def webhook_post():
     if request.method == 'POST':
@@ -264,14 +377,25 @@ def webhook_post():
             req = request.json
             try:
                 if(req["action"]["type"] == "createCard"):
-                    print("Card Create")
+                    # Get Data
+                    print("偵測到新增卡片")
                     user_input = req["action"]["data"]["card"]["name"]
                     card_id = req["action"]["data"]["card"]["id"]
-                    board_id = req["action"]["data"]["board"]["id"]
-                    print("Get String:",user_input)
-                    print("Get ID:", card_id)
-                    print("Get Board ID:", board_id)
-                #print(request.json)
+                    ##board_id = req["action"]["data"]["board"]["id"]
+                    
+                    # Start to Search and Add Comment
+                    process_satae = process_webhook({
+                        "user_input" : user_input,
+                        "card_id" : card_id,
+                    })
+
+                    # Add Log to Server
+                    if(process_satae['state']):
+                        add_trello_log(card_id, True, process_satae["show_msg"])
+                    else:
+                        add_trello_log(card_id, False,process_satae["show_msg"] + "\n\n" + process_satae["err_msg"])
+                
+                #add_trello_log(card_id, True, "Card Create")
             except:
                 pass
         except:

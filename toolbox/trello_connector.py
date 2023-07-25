@@ -69,6 +69,13 @@ def addCommentToCard(card_id,msgString):
     )
     print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
 
+####################
+## 在卡片下留言(含圖片)
+# Request Value
+# card_id : String (Trello Card ID)
+# img_path : String (圖片路徑-公網可見圖檔路徑)
+# data : msgString (留言內容)
+####################
 def addCommentWithPictureToCard(card_id,img_path, msgString):
-    send_msg = f"![songlaInpageCover.png]({img_path})\n {msgString}"
+    send_msg = f"![songlaInpageCover.png]({img_path})\n\n {msgString}"
     addCommentToCard(card_id,send_msg)
