@@ -10,14 +10,14 @@
 
 ### Create embedding
 **Request Value**
-``` json
+``` javascript
 {
     "sentence" : "String",
 }
 ```
 
 **Response Value**
-``` json
+``` javascript
 {
     "state" : "Boolean",
     "result" : "Array(768)",
@@ -26,7 +26,7 @@
 
 ### List top k similarity
 **Request Value**
-``` json
+``` javascript
 {
     "vector" : "Array(768)",
     "limit" : "Int",
@@ -34,7 +34,7 @@
 ```
 
 **Response Value**
-``` json
+``` javascript
 {
     "state" : "Boolean",
     "result" :  [
@@ -50,7 +50,7 @@
 
 ### List Article by Sentence
 **Request Value**
-``` json
+``` javascript
 {
     "sentence" : "String",
     "limit" : "Int",
@@ -60,7 +60,7 @@
 ```
 
 **Response Value**
-``` json
+``` javascript
 {
     "state" : "Boolean",
     "result" : [
