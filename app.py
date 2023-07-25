@@ -381,6 +381,15 @@ def process_webhook(data):
                         "err_msg" : str(exp),
                         "show_msg" : "[addCommentToCard] 留言失敗",
                     }
+            # All Done
+            return {
+                "state" : True,
+                "show_msg" : "留言成功",
+                "more_info" : {
+                    "user_input" : user_input,
+                    "searchResult" : result_of_sentence['result'],
+                }
+            }
         else:
             return {
                 "state" : False,
@@ -393,11 +402,6 @@ def process_webhook(data):
             "err_msg" : str(exp),
             "show_msg" : "[process_webhook] 資料處理失敗，請聯絡工程人員",
         }
-    
-    return {
-        "state" : True,
-        "show_msg" : "留言成功",
-    }
 
 @app.route('/webhook',methods=['POST','HEAD','GET'])
 def webhook_post():
@@ -424,16 +428,20 @@ def webhook_post():
                             updateDataToCard(card_id, {
                                 "name" : f"[已完成] {user_input}",
                             })
-                            add_trello_log(card_id, True, process_satae["show_msg"])
+                            # Add Success Log
+                            add_trello_log(card_id, True, process_satae["show_msg"],more_info=process_satae['more_info'])
                         except Exception as exp:
+                            # Add Fail Log(Because of updateDataToCard)
                             add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
                     else:
                         try:
                             updateDataToCard(card_id, {
                                 "name" : f"[系統有誤] {user_input}",
                             })
+                            # Add Fail Log(Because of process_webhook)
                             add_trello_log(card_id, False,process_satae["show_msg"] + "\n\n" + process_satae["err_msg"])
                         except Exception as exp:
+                            # Add Fail Log(Because of updateDataToCard)
                             add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
             except:
                 pass

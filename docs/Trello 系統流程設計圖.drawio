@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="第 1 页" id="9sm9V-_68C3-Qy4svXuR">
-        <mxGraphModel dx="1266" dy="879" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" background="#ffffff" math="0" shadow="0">
+        <mxGraphModel dx="1643" dy="892" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" background="#ffffff" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -181,8 +181,8 @@
                 <mxCell id="FDVRgcC-wKnDVl125Zgy-6" value="系統紀錄資料庫" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFFFFF;strokeColor=#171717;fontColor=#171717;" parent="1" vertex="1">
                     <mxGeometry x="1200" y="720" width="60" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="FDVRgcC-wKnDVl125Zgy-7" value="(mongodb)&lt;br&gt;----------------------&lt;br&gt;auto_id&lt;font&gt; (_id) PK&lt;/font&gt;&lt;br&gt;datatime&lt;br&gt;card_id&lt;font&gt; (str) Trello Card ID&lt;br&gt;&lt;/font&gt;state&lt;font&gt; (boolean)&lt;/font&gt;&lt;br&gt;msg&lt;font&gt; (str)&lt;br&gt;&lt;br&gt;&lt;/font&gt;" style="whiteSpace=wrap;html=1;rounded=0;fontFamily=Verdana;fontSize=10;spacingLeft=8;align=left;verticalAlign=top;spacingTop=8;spacing=0;glass=0;shadow=1;fillColor=#FFFFFF;fontColor=#333333;strokeColor=#171717;" parent="1" vertex="1">
-                    <mxGeometry x="1270" y="730" width="210" height="110" as="geometry"/>
+                <mxCell id="FDVRgcC-wKnDVl125Zgy-7" value="(mongodb)&lt;br&gt;----------------------&lt;br&gt;auto_id&lt;font&gt; (_id) PK&lt;/font&gt;&lt;br&gt;datatime&lt;br&gt;card_id&lt;font&gt; (str) Trello Card ID&lt;br&gt;&lt;/font&gt;state&lt;font&gt; (boolean)&lt;/font&gt;&lt;br&gt;msg&lt;font&gt; (str)&lt;br&gt;more_info (dict)&lt;br&gt;&lt;/font&gt;" style="whiteSpace=wrap;html=1;rounded=0;fontFamily=Verdana;fontSize=10;spacingLeft=8;align=left;verticalAlign=top;spacingTop=8;spacing=0;glass=0;shadow=1;fillColor=#FFFFFF;fontColor=#333333;strokeColor=#171717;" parent="1" vertex="1">
+                    <mxGeometry x="1270" y="730" width="210" height="123" as="geometry"/>
                 </mxCell>
                 <mxCell id="FDVRgcC-wKnDVl125Zgy-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.005;entryY=0.6;entryDx=0;entryDy=0;entryPerimeter=0;strokeColor=#171717;" parent="1" source="FDVRgcC-wKnDVl125Zgy-8" target="FDVRgcC-wKnDVl125Zgy-6" edge="1">
                     <mxGeometry relative="1" as="geometry">

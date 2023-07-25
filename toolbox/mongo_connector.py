@@ -50,12 +50,12 @@ def article_search(article_id):
 # time : String (Log Time %Y-%m-%d %H:%M:%S ) 2023-07-25 12:53:41 [可選]
 ####################
 
-def add_trello_log(card_id, state, msg, time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")):
-    print(time, f": {card_id} [{str(state)}] | ", msg)
+def add_trello_log(card_id, state, msg, time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),more_info=""):
     # 插入 MongoDB
     mongo_trello_log_collection.insert_one({
         "datetime" : time,
         "card_id" : card_id,
         "state" : state,
         "msg" : msg,
+        "more_info" : more_info,
     })
