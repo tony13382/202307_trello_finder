@@ -121,6 +121,7 @@ def vector_post():
 # anthropic_setup : Boolean (預設為 False, True 時會使用 GPT 回答問題)
 # openai_setup : Boolean (預設為 False, True 時會使用 GPT 回答問題) 
 # roBERTa_setup : Boolean (預設為 False, True 時會使用 GPT 回答問題)
+# bert_setup : Boolean (預設為 False, True 時會使用 GPT 回答問題)
 #-------------------
 # Response Value
 # state : Boolean
