@@ -18,7 +18,7 @@ from toolbox.vector_search import search_vector
 # MongoDB 文章搜尋模組
 from toolbox.mongo_connector import article_search,add_trello_log
 # GPT 回答模組
-from toolbox.answer_core import qa_by_anthropic, qa_by_openai, qa_by_RoBERTa
+from toolbox.answer_core import qa_by_anthropic, qa_by_openai, qa_by_RoBERTa, qa_by_bert
 # Trello 模組
 from toolbox.trello_connector import updateDataToCard, addCommentToCard, addCommentWithPictureToCard
 
@@ -178,6 +178,18 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
                         "state" : False,
                         "err_msg" : answer['value'],
                         "show_msg" : "RoBERTa GPT 模組失敗，請聯絡工程人員",
+                        "error_code" : 504,
+                    }
+            # Use Meta's content to answer question by RoBERTa
+            if bert_setup:
+                answer = qa_by_bert(article['value']['content'], sentence)
+                if(answer['state']):
+                    insert_data["answer_by_BERT"] = answer['value']
+                else:
+                    return {
+                        "state" : False,
+                        "err_msg" : answer['value'],
+                        "show_msg" : "BERT GPT 模組失敗，請聯絡工程人員",
                         "error_code" : 504,
                     }
 
