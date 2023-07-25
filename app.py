@@ -327,11 +327,11 @@ def article_get():
 
 # Webhook API
 trello_request_limit = int(os.getenv("trello_request_limit"))
-# Get Search Result
-anthropic_setup = bool(os.getenv("anthropic_setup"))
-openai_setup = bool(os.getenv("openai_setup"))
-roBERTa_setup = bool(os.getenv("roBERTa_setup"))
-bert_setup = bool(os.getenv("bert_setup"))
+# Get Environment Value
+anthropic_setup = os.getenv("anthropic_setup") in ["True", "true", "1"]
+openai_setup = os.getenv("openai_setup") in ["True", "true", "1"]
+roBERTa_setup = os.getenv("roBERTa_setup") in ["True", "true", "1"]
+bert_setup = os.getenv("bert_setup") in ["True", "true", "1"]
 
 def process_webhook(data):
     try:
@@ -381,22 +381,6 @@ def process_webhook(data):
                         "err_msg" : str(exp),
                         "show_msg" : "[addCommentToCard] 留言失敗",
                     }
-            
-            # List of All comment Done
-            try:
-                updateDataToCard(card_id, {
-                    "name" : f"[已完成] {user_input}",
-                })
-                return {
-                    "state" : True,
-                    "show_msg" : "留言成功",
-                }
-            except Exception as exp:
-                return {
-                    "state" : False,
-                    "err_msg" : str(exp),
-                    "show_msg" : "[updateDataToCard] 卡片更新失敗",
-                }
         else:
             return {
                 "state" : False,
@@ -409,6 +393,11 @@ def process_webhook(data):
             "err_msg" : str(exp),
             "show_msg" : "[process_webhook] 資料處理失敗，請聯絡工程人員",
         }
+    
+    return {
+        "state" : True,
+        "show_msg" : "留言成功",
+    }
 
 @app.route('/webhook',methods=['POST','HEAD','GET'])
 def webhook_post():
@@ -431,11 +420,21 @@ def webhook_post():
 
                     # Add Log to Server
                     if(process_satae['state']):
-                        add_trello_log(card_id, True, process_satae["show_msg"])
+                        try:
+                            updateDataToCard(card_id, {
+                                "name" : f"[已完成] {user_input}",
+                            })
+                            add_trello_log(card_id, True, process_satae["show_msg"])
+                        except Exception as exp:
+                            add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
                     else:
-                        add_trello_log(card_id, False,process_satae["show_msg"] + "\n\n" + process_satae["err_msg"])
-                
-                #add_trello_log(card_id, True, "Card Create")
+                        try:
+                            updateDataToCard(card_id, {
+                                "name" : f"[系統有誤] {user_input}",
+                            })
+                            add_trello_log(card_id, False,process_satae["show_msg"] + "\n\n" + process_satae["err_msg"])
+                        except Exception as exp:
+                            add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
             except:
                 pass
         except:
