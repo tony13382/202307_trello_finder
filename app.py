@@ -327,6 +327,12 @@ def article_get():
 
 # Webhook API
 trello_request_limit = int(os.getenv("trello_request_limit"))
+# Get Search Result
+anthropic_setup = bool(os.getenv("anthropic_setup"))
+openai_setup = bool(os.getenv("openai_setup"))
+roBERTa_setup = bool(os.getenv("roBERTa_setup"))
+bert_setup = bool(os.getenv("bert_setup"))
+
 def process_webhook(data):
     try:
         # Convert Data
@@ -334,11 +340,17 @@ def process_webhook(data):
         user_input = data["user_input"]
         card_id = data["card_id"]
 
-        # Get Search Result
-        anthropic_setup = bool(os.getenv("anthropic_setup"))
-        openai_setup = bool(os.getenv("openai_setup"))
-        roBERTa_setup = bool(os.getenv("roBERTa_setup"))
-        bert_setup = bool(os.getenv("bert_setup"))
+
+        try:
+            updateDataToCard(card_id, {
+                "name" : f"[進行中] {user_input}",
+            })
+        except Exception as exp:
+            return {
+                "state" : False,
+                "err_msg" : str(exp),
+                "show_msg" : "[updateDataToCard] 卡片更新失敗",
+            }
 
         result_of_sentence = process_sentence_to_article_list(user_input,setup={
             "limit" : trello_request_limit,
@@ -356,6 +368,10 @@ def process_webhook(data):
                     commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
                 if(openai_setup):
                     commit_msg += f"參考回答 C ：\n{item['answer_by_openai']} \n"
+                if(roBERTa_setup):
+                    commit_msg += f"參考回答 RB ：\n{item['answer_by_RoBERTa']} \n"
+                if(bert_setup):
+                    commit_msg += f"參考回答 B ：\n{item['answer_by_BERT']} \n"
                 # Add Comment
                 try:
                     addCommentToCard(card_id,commit_msg)
