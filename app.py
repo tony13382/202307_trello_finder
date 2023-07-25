@@ -130,7 +130,7 @@ def vector_post():
 ####################
 
 # 預處理 Milvus 回傳的資料
-def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setup=False,roBERTa_setup=False):
+def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setup=False,roBERTa_setup=False,bert_setup=False):
     return_array = []
     for item in req_array:
         # Use track_id to find Ariicle (Only one article)
@@ -215,6 +215,11 @@ def process_sentence_to_article_list(sentence,setup):
         roBERTa_setup = setup["roBERTa_setup"]
     else:
         roBERTa_setup = False
+
+    if "bert_setup" in setup:
+        bert_setup = setup["bert_setup"]
+    else:
+        bert_setup = False
     
     
     # Search By Vector
@@ -233,6 +238,7 @@ def process_sentence_to_article_list(sentence,setup):
                     anthropic_setup = anthropic_setup,
                     openai_setup = openai_setup,
                     roBERTa_setup = roBERTa_setup,
+                    bert_setup = bert_setup,
                 )
                 if(return_array['state']):
                     return {
@@ -283,6 +289,8 @@ def article_get():
         openai_setup = request.args.get('openai_setup',False)
         # Get RoBERTa Setup
         roBERTa_setup = request.args.get('roBERTa_setup',False)
+        # Get BERT Setup
+        bert_setup = request.args.get('bert_setup',False)
 
         # Get Search Result
         result = process_sentence_to_article_list(sentence,setup={
@@ -290,6 +298,7 @@ def article_get():
             "anthropic_setup" : anthropic_setup,
             "openai_setup" : openai_setup,
             "roBERTa_setup" : roBERTa_setup,
+            "bert_setup" : bert_setup,
         })
         # Return Result
         return jsonify(result)
@@ -316,12 +325,14 @@ def process_webhook(data):
         anthropic_setup = bool(os.getenv("anthropic_setup"))
         openai_setup = bool(os.getenv("openai_setup"))
         roBERTa_setup = bool(os.getenv("roBERTa_setup"))
+        bert_setup = bool(os.getenv("bert_setup"))
 
         result_of_sentence = process_sentence_to_article_list(user_input,setup={
             "limit" : trello_request_limit,
             "anthropic_setup" : anthropic_setup,
             "openai_setup" : openai_setup,
             "roBERTa_setup" : roBERTa_setup,
+            "bert_setup" : bert_setup,
         })
         
         if(result_of_sentence['state']):

@@ -69,6 +69,7 @@ def addCommentToCard(card_id,msgString):
     )
     print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
 
+
 ####################
 ## 在卡片下留言(含圖片)
 # Request Value
