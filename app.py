@@ -214,6 +214,11 @@ def process_sentence_to_article_list(sentence,setup):
     else:
         limit = 10
     
+    if "offset" in setup:
+        offset = setup["offset"]
+    else:
+        offset = 0
+    
     if "anthropic_setup" in setup:
         anthropic_setup = setup["anthropic_setup"]
     else:
@@ -238,9 +243,10 @@ def process_sentence_to_article_list(sentence,setup):
     # Search By Vector
     if(q_vector["state"]):
         limit = int(limit)
+        offset = int(offset)
     
         # Get Similar Article
-        result = search_vector(q_vector["value"], limit=limit)
+        result = search_vector(q_vector["value"], limit=limit, offset=offset)
         
         if(result['state']):
             try:
@@ -296,6 +302,8 @@ def article_get():
         sentence = request.args.get('sentence')
         # Get Limit
         get_limit = request.args.get('limit',10)
+        # Get Limit
+        get_offset = request.args.get('offset',10)
         # Get Anthropic Setup
         anthropic_setup = request.args.get('anthropic_setup',False)
         # Get OpenAI Setup
@@ -308,6 +316,7 @@ def article_get():
         # Get Search Result
         result = process_sentence_to_article_list(sentence,setup={
             "limit" : get_limit,
+            "offset" : get_offset,
             "anthropic_setup" : anthropic_setup,
             "openai_setup" : openai_setup,
             "roBERTa_setup" : roBERTa_setup,
