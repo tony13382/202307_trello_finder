@@ -37,7 +37,9 @@ def create_word_cloud(index, string):
     plt.axis("off")
     save_path = f"images/{index}.png"
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-
+    plt.clf()
+    print(f"Create word cloud for {index} Done")
+    
 # Function to tokenize and remove stop words
 def tokenize_and_remove_stopwords(string):
     words = jieba.cut(string)
