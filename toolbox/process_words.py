@@ -5,6 +5,7 @@ from sentence_transformers import SentenceTransformer, util
 # Import modules of wordCut
 import re
 import monpa
+monpa.load_userdict("./docs/process_words_monpa_dict.txt")
 
 # Import modules of mongo_connector(For close_word_search)
 from toolbox.mongo_connector import close_word_search
@@ -48,9 +49,11 @@ def process_sentence(sentence):
     stop_word_list = ["是什麼", "小幫手我想問", "我想問", "小幫手我想知道"]
     for stop_word in stop_word_list:
         sentence = sentence.replace(stop_word, "")
-    # 将句子切割成词
+    
+    # 3. 将句子切割成词
     word_list = monpa.cut(sentence)
-    # 去除停用词並套用 close_word_search
+    
+    # 4. 去除停用词並套用 close_word_search
     word_list = [close_word_search(word) for word in word_list]
 
     # 将词列表拼接成句子

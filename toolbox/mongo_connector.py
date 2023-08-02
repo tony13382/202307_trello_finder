@@ -56,7 +56,7 @@ def close_word_search(word):
     result = mongo_close_word_collection.find_one(query)
     # 處理搜尋結果
     if result:
-        return word + " " + result["value"]
+        return word + "：" + result["value"] + "\n"
     else:
         return str(word)
 

@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # SBERT 編碼模組
-from toolbox.embed import embedding_sentence, process_sentence
+from toolbox.process_words import embedding_sentence, process_sentence
 # Milvus 向量搜尋與運算模組
 from toolbox.vector_search import search_vector
 # MongoDB 文章搜尋模組
@@ -207,9 +207,8 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
     }
 
 def process_sentence_to_article_list(sentence,setup):
-    # 萃取資訊模糊化並轉換成向量
+    # 轉換成向量
     fuzzy_sentence = process_sentence(sentence)
-    print(f'Searching for {fuzzy_sentence}')
     q_vector = embedding_sentence(fuzzy_sentence)
     
     # Get Value Setup
@@ -352,11 +351,11 @@ def process_webhook(data):
         print(data)
         user_input = data["user_input"]
         card_id = data["card_id"]
-
-
+        fuzzy_sentence = process_sentence(user_input)
         try:
             updateDataToCard(card_id, {
                 "name" : f"[進行中] {user_input}",
+                "desc" : f"**關鍵字推薦：** \n\n{fuzzy_sentence}",
             })
         except Exception as exp:
             return {
@@ -364,7 +363,8 @@ def process_webhook(data):
                 "err_msg" : str(exp),
                 "show_msg" : "[updateDataToCard] 卡片更新失敗",
             }
-
+        
+        
         result_of_sentence = process_sentence_to_article_list(user_input,
             setup={
             "limit" : trello_request_limit,
@@ -376,7 +376,7 @@ def process_webhook(data):
         
         if(result_of_sentence['state']):
             # Add Comment
-            for item in result_of_sentence['result'].reverse():
+            for item in reversed(result_of_sentence['result']):
                 commit_msg = f"參考資料：\n[{item['title']}]({item['url']}) \n"
                 if(anthropic_setup):
                     commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
@@ -430,6 +430,9 @@ def webhook_post():
                     card_id = req["action"]["data"]["card"]["id"]
                     ##board_id = req["action"]["data"]["board"]["id"]
                     
+                    if(user_input[0] == "!"):
+                        return ("", 200)
+
                     # Start to Search and Add Comment
                     process_satae = process_webhook({
                         "user_input" : user_input,
