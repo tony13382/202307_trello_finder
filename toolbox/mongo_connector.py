@@ -13,7 +13,7 @@ client = MongoClient(mongodb_path)
 db = client.nthu_trello_helper
 mongo_article_collection = db.article
 mongo_trello_log_collection = db.trello_log
-
+mongo_close_word_collection = db.close_words
 
 ####################
 ## 搜尋文章
@@ -39,6 +39,26 @@ def article_search(article_id):
             "state" : False,
             "value" : "未找到符合條件的文件。" + str(article_id),
         }
+
+
+####################
+## 搜尋相似文字
+# Request Value
+# word : String (word)
+#-------------------
+# Response Value
+# state : Boolean
+# result : String
+####################
+def close_word_search(word):
+    # 搜尋符合條件的文件
+    query = {"key": word}
+    result = mongo_close_word_collection.find_one(query)
+    # 處理搜尋結果
+    if result:
+        return word + " " + result["value"]
+    else:
+        return str(word)
 
 
 ####################

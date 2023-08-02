@@ -1,10 +1,12 @@
 # coding:utf-8
 import ast
+import re
 
 from flask import Flask
-from flask import render_template, jsonify
+from flask import render_template, jsonify, redirect
 from flask import request
 import json
+
 
 # Setup environment value
 import os
@@ -12,17 +14,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # SBERT 編碼模組
-from toolbox.embed import embedding_sentence
+from toolbox.embed import embedding_sentence, process_sentence
 # Milvus 向量搜尋與運算模組
 from toolbox.vector_search import search_vector
 # MongoDB 文章搜尋模組
-from toolbox.mongo_connector import article_search,add_trello_log
+from toolbox.mongo_connector import article_search,add_trello_log, close_word_search
 # GPT 回答模組
 from toolbox.answer_core import qa_by_anthropic, qa_by_openai, qa_by_RoBERTa, qa_by_bert
 # Trello 模組
 from toolbox.trello_connector import updateDataToCard, addCommentToCard, addCommentWithPictureToCard
 
-app = Flask(__name__)
+
+app = Flask(__name__,static_url_path='/imgs',static_folder='static/images/')
 
 @app.route('/',methods=['GET'])
 def index():
@@ -129,7 +132,6 @@ def vector_post():
 #     {} * limit //Top-K Items
 # ]
 ####################
-
 # 預處理 Milvus 回傳的資料
 def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setup=False,roBERTa_setup=False,bert_setup=False):
     return_array = []
@@ -205,8 +207,10 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
     }
 
 def process_sentence_to_article_list(sentence,setup):
-    # Get Embedding Vector
-    q_vector = embedding_sentence(sentence)
+    # 萃取資訊模糊化並轉換成向量
+    fuzzy_sentence = process_sentence(sentence)
+    print(f'Searching for {fuzzy_sentence}')
+    q_vector = embedding_sentence(fuzzy_sentence)
     
     # Get Value Setup
     if "limit" in setup:
@@ -361,7 +365,8 @@ def process_webhook(data):
                 "show_msg" : "[updateDataToCard] 卡片更新失敗",
             }
 
-        result_of_sentence = process_sentence_to_article_list(user_input,setup={
+        result_of_sentence = process_sentence_to_article_list(user_input,
+            setup={
             "limit" : trello_request_limit,
             "anthropic_setup" : anthropic_setup,
             "openai_setup" : openai_setup,
@@ -371,7 +376,7 @@ def process_webhook(data):
         
         if(result_of_sentence['state']):
             # Add Comment
-            for item in result_of_sentence['result']:
+            for item in result_of_sentence['result'].reverse():
                 commit_msg = f"參考資料：\n[{item['title']}]({item['url']}) \n"
                 if(anthropic_setup):
                     commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
@@ -458,6 +463,14 @@ def webhook_post():
             print("null Request")
 
     return ("", 200)
+
+# Image API(For Trello to Get Image File)
+@app.route('/imgs/<filename>')
+def serve_image(filename):
+    # 構建圖片檔案的路徑
+    image_path = f'static/{filename}'
+    # 將用戶導向圖片檔案
+    return redirect(image_path)
 
 if __name__ == '__main__':
     app.debug = True
