@@ -377,7 +377,7 @@ def process_webhook(data):
         if(result_of_sentence['state']):
             # Add Comment
             for item in reversed(result_of_sentence['result']):
-                commit_msg = f"參考資料：\n[{item['title']}]({item['url']}) \n"
+                commit_msg = f"參考資料：\n[{item['title']}]({item['url']})（{item['id']}）\n"
                 if(anthropic_setup):
                     commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
                 if(openai_setup):

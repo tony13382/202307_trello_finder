@@ -3,11 +3,14 @@ from sentence_transformers import SentenceTransformer, util
 
 
 # Import modules of wordCut
+# https://github.com/monpa-team/monpa
+# 正體中文斷詞系統應用於大型語料庫之多方評估研究: https://aclanthology.org/2022.rocling-1.24.pdf
 import re
 import monpa
 monpa.load_userdict("./docs/process_words_monpa_dict.txt")
+print('monpa_dict loaded')
 
-# Import modules of mongo_connector(For close_word_search)
+# Import modules of mongo_connector(For process_sentence)
 from toolbox.mongo_connector import close_word_search
 
 # Select model by transformer
@@ -46,7 +49,7 @@ def process_sentence(sentence):
 
     # 2. 去除停用词
     # 停用词表 ＃為基礎少數通用詞彙 ＃速度慢
-    stop_word_list = ["是什麼", "小幫手我想問", "我想問", "小幫手我想知道"]
+    stop_word_list = ["是什麼", "小幫手我想問", "我想問", "小幫手我想知道", "的原理","什麼是"]
     for stop_word in stop_word_list:
         sentence = sentence.replace(stop_word, "")
     

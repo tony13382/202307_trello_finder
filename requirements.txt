@@ -8,3 +8,4 @@ pymongo
 pymilvus
 pandas
 openpyxl
+monpa
