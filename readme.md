@@ -1,86 +1,45 @@
 # Trello Finder
-## API List
-|  name | rount  | verb | description |
-|  ---  | -----  | ---  | ----------- |
-| Create embedding  | /api/vector | POST | 新增（轉換）一個向量 |
-| List top k similarity | /api/vector | GET | 獲取相近的文本（by vector） |
-| List Article by Sentence | /api/article | GET | 獲取相近的文本（by sentence） |
-| Webhook for Trello | /api/webhook | POST | Trello Webhook 運作單元 |
+![Cover of plan](./static/cover/cover.png)
+清華大學 學習科學與科技研究所 區國良老師研究室計劃案 **（Trello 知識小幫手2）**
+開發者：清華大學 學習科學與科技研究所 **呂亮進**
 
-## API Request & Response
+---
+### 運用中不可處置資料
+| 文檔名稱 | 用途 | 備註 |
+| :--- | :--- | :--- |
+| [doc_converter.ipynb](./docs/doc_converter.ipynb) | 資料轉換 | 文字雲、mongo milvus 資料庫轉存 |
+| [jf-openhuninn-2.0.ttf](./docs/jf-openhuninn-2.0.ttf) |  相依於 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 文字雲採用字體 |
+| [stopwords_chinese.txt](./docs/stopwords_chinese.txt) | 相依於 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 斷詞停用字列表（基於 [goto456/stopwords](https://github.com/goto456/stopwords) 哈工） |
+| [monpa斷詞字典.txt](./docs/monpa斷詞字典.txt) | 相依於 [process_words.py](./toolbox/process_words.py) | 斷詞權重調整 |
+| [vector_all.json](./docs/vector_all.json) |  df 備份檔案、相依於 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 包含所有文本向量化的 dataframe |
 
-### Create embedding
-**Request Value**
-``` javascript
-{
-    "sentence" : String,
-}
-```
+### 備用資料
+| 文檔名稱 | 用途 | 備註 |
+| :--- | :--- | :--- |
+| [0926_new.xlsx](./docs/文章原始資料/0926_new.xlsx) |  原始文章資料 | 學姊於07/20交接 |
+| [docs / images / *.png](./docs/images) | 文字雲圖片備份 | 對應原始資料 df.index |
 
-**Response Value**
-``` javascript
-{
-    "state" : Boolean,
-    "result" : Array(768),
-}
-```
+### 技術文件
+| 文檔名稱 | 用途 | 備註 |
+| :--- | :--- | :--- |
+| [Trello 小幫手 2.0↗](https://www.canva.com/design/DAFpubaReH0/BbDmz605ypPRGSZAJdPh8g/edit) |  技術簡介 | Trello 小幫手 2.0 說明與介紹 |
+| [API 技術文件](./docs/開發文本資料/api.md) |  API 文件 | API 規範與使用 |
+| [Trello 系統流程設計圖.drawio](./Trello%20系統流程設計圖.drawio) |  開發技術文件 | - |
+| [Trello 系統流程設計圖v1.0.png](./Trello%20系統流程設計圖v1.0.png) |  開發文件輸出 | 07/26 |
+| [Trello 系統流程設計圖v2.0.png](./Trello%20系統流程設計圖v2.0.png) |  開發文件輸出 | 08/02 |
 
-### List top k similarity
-**Request Value**
-``` javascript
-{
-    "vector" : Array(768),
-    "limit" : Int,
-}
-```
+---
 
-**Response Value**
-``` javascript
-{
-    "state" : Boolean,
-    "result" :  [
-        {
-            "id" : String,
-            "distance" : Float,
-            "preview" : String,
-            "track_id" : String,
-        } * limit
-    ] 
-}
-```
+### 參考文件
+| 文檔名稱 | 用途 | 備註 |
+| :--- | :--- | :--- |
+| [The Trello REST API↗](https://developer.atlassian.com/cloud/trello/rest/api-group-cards/#api-cards-id-put) | 第三方技術文件 | Trello API 說明與介紹 |
+| [Get Started Building on Trello↗](https://developer.atlassian.com/cloud/trello/) | 第三方技術文件 | POWER-UPS 說明與介紹、Webhook API 設定 |
+| [SentenceTransformers Documentation↗](https://www.sbert.net/index.html) | 第三方技術文件 | sbert 技術說明與介紹 |
+| [罔拍 MONPA GitHub↗](https://github.com/monpa-team/monpa) | 第三方技術文件 | 斷詞模組 monpa 說明與介紹 |
+| [正體中文斷詞系統應用於大型語料庫之多方評估研究↗](https://aclanthology.org/2022.rocling-1.24.pdf) | 論文 | 斷詞模組相關論文 |
 
-### List Article by Sentence
-**Request Value**
-``` javascript
-{
-    "sentence" : String,
-    "limit" : Int, // 預設為 10, 可限制回傳數量
-    "offset" : Int, // 預設為 0, 可選取回傳資料的起始位置
-    "anthropic_setup" : Boolean, // 預設為 False, True 時會使用 Anthropic 回答問題
-    "openai_setup" : Boolean,  // 預設為 False, True 時會使用 ChatGPT 回答問題
-    "roBERTa_setup" : Boolean, // 預設為 False, True 時會使用 roBERTa 回答問題
-    "bert_setup" : Boolean, // 預設為 False, True 時會使用 BERT 回答問題
-}
-```
+---
 
-**Response Value**
-``` javascript
-{
-    "state" : Boolean,
-    "result" : [
-        {
-            "id" : String,
-            "distance" : Float,
-            "preview" : String,
-            "track_id" : String,
-            "answer_by_anthropic" : String,
-            "answer_by_openai" : String,
-            "answer_by_RoBERTa" : String,
-            "answer_by_BERT" : String,
-        } * limit
-    ],
-}
-```
-
-## Other Data:
+### Other Data:
 Webhook id : **64be32eeb534868609690ed1**
