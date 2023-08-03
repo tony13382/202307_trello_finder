@@ -7,11 +7,14 @@ from flask import render_template, jsonify, redirect
 from flask import request
 import json
 
+# 用於隨機抽取回應（無答案時）
+import random
 
 # Setup environment value
 import os
 from dotenv import load_dotenv
 load_dotenv()
+not_found_msg_list = ["對不起，我還在學習，等我長大後再告訴你答案啦","你的問題好有趣，但我現在還不會 (´・ω・`)","我的小腦袋想不到 (╥﹏╥)，但我相信你的老師會的！"]
 
 # SBERT 編碼模組
 from toolbox.process_words import embedding_sentence, process_sentence
@@ -129,13 +132,17 @@ def vector_post():
 # Response Value
 # state : Boolean
 # result : [
-#     {} * limit //Top-K Items
+#     {} * 0~limit //Top-K Items
 # ]
 ####################
 # 預處理 Milvus 回傳的資料
 def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setup=False,roBERTa_setup=False,bert_setup=False):
     return_array = []
     for item in req_array:
+        # IF distance < 2, break and return 相關性不足的文章
+        if(item['distance'] < 2):
+            break
+
         # Use track_id to find Ariicle (Only one article)
         article_id = item['track_id']
         article = article_search(article_id)
@@ -194,7 +201,6 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
                         "show_msg" : "BERT GPT 模組失敗，請聯絡工程人員",
                         "error_code" : 504,
                     }
-
         else:
             print(article['value'], "cannot find")
         
@@ -376,25 +382,36 @@ def process_webhook(data):
         
         if(result_of_sentence['state']):
             # Add Comment
-            for item in reversed(result_of_sentence['result']):
-                commit_msg = f"參考資料：\n[{item['title']}]({item['url']})（{item['id']}）\n"
-                if(anthropic_setup):
-                    commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
-                if(openai_setup):
-                    commit_msg += f"參考回答 C ：\n{item['answer_by_openai']} \n"
-                if(roBERTa_setup):
-                    commit_msg += f"參考回答 RB ：\n{item['answer_by_RoBERTa']} \n"
-                if(bert_setup):
-                    commit_msg += f"參考回答 B ：\n{item['answer_by_BERT']} \n"
-                # Add Comment
+            if(len(result_of_sentence['result']) == 0):
+                commit_msg = random.choice(not_found_msg_list)
                 try:
-                    addCommentToCard(card_id,commit_msg)
+                    addCommentToCard(card_id, commit_msg)
                 except Exception as exp:
                     return {
                         "state" : False,
                         "err_msg" : str(exp),
-                        "show_msg" : "[addCommentToCard] 留言失敗",
+                        "show_msg" : "[addCommentToCard] 卡片更新失敗",
                     }
+            else:
+                for item in reversed(result_of_sentence['result']):
+                    commit_msg = f"參考資料：\n[{item['title']}]({item['url']})（{item['id']}）\n"
+                    if(anthropic_setup):
+                        commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
+                    if(openai_setup):
+                        commit_msg += f"參考回答 C ：\n{item['answer_by_openai']} \n"
+                    if(roBERTa_setup):
+                        commit_msg += f"參考回答 RB ：\n{item['answer_by_RoBERTa']} \n"
+                    if(bert_setup):
+                        commit_msg += f"參考回答 B ：\n{item['answer_by_BERT']} \n"
+                    # Add Comment
+                    try:
+                        addCommentToCard(card_id,commit_msg)
+                    except Exception as exp:
+                        return {
+                            "state" : False,
+                            "err_msg" : str(exp),
+                            "show_msg" : "[addCommentToCard] 留言失敗",
+                        }
             # All Done
             return {
                 "state" : True,
