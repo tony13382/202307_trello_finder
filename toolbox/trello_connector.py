@@ -68,6 +68,9 @@ def addCommentToCard(card_id,msgString):
         params=query
     )
     print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
+    print("+----------------------------+")
+    print("卡片下留言(純文字)成功")
+    print("+----------------------------+")
 
 
 ####################
@@ -80,3 +83,38 @@ def addCommentToCard(card_id,msgString):
 def addCommentWithPictureToCard(card_id,img_path, msgString):
     send_msg = f"![songlaInpageCover.png]({img_path})\n\n {msgString}"
     addCommentToCard(card_id,send_msg)
+    print("+----------------------------+")
+    print("卡片下留言(含圖片)成功")
+    print("+----------------------------+")
+
+
+####################
+#上傳檔案至卡片
+# Request Value
+# card_id : String (Trello Card ID)
+# file_path : String (檔案路徑)
+####################
+def addFileToCard(card_id,file_path):
+    # 上傳圖片，獲取附件ID
+    url = f"https://api.trello.com/1/cards/{card_id}/attachments"
+    params = {"key": api_key, "token": api_token}
+    files = {"file": open(file_path, "rb")}
+    response = requests.post(url, params=params, files=files)
+    data = response.json()
+    attachment_id = data["id"]
+    print("Upload Done. ",attachment_id)
+    return attachment_id
+
+def addCoverToCard(card_id,img_path):
+    # 上傳圖片，獲取附件ID
+    attachment_id = addFileToCard(card_id,img_path)    
+    
+    # 將附件ID設置為封面
+    url = f"https://api.trello.com/1/cards/{card_id}/idAttachmentCover"
+    params = {"key": api_key, "token": api_token, "value": attachment_id}
+    response = requests.put(url, params=params)
+    print(response.json())
+
+    print("+----------------------------+")
+    print("封面設置成功")
+    print("+----------------------------+")

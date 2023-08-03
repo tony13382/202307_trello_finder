@@ -17,7 +17,7 @@ load_dotenv()
 not_found_msg_list = ["對不起，我還在學習，等我長大後再告訴你答案啦","你的問題好有趣，但我現在還不會 (´・ω・`)","我的小腦袋想不到 (╥﹏╥)，但我相信你的老師會的！"]
 
 # SBERT 編碼模組
-from toolbox.process_words import embedding_sentence, process_sentence
+from toolbox.process_words import embedding_sentence, process_sentence, generate_wordcloud
 # Milvus 向量搜尋與運算模組
 from toolbox.vector_search import search_vector
 # MongoDB 文章搜尋模組
@@ -25,7 +25,7 @@ from toolbox.mongo_connector import article_search,add_trello_log, close_word_se
 # GPT 回答模組
 from toolbox.answer_core import qa_by_anthropic, qa_by_openai, qa_by_RoBERTa, qa_by_bert
 # Trello 模組
-from toolbox.trello_connector import updateDataToCard, addCommentToCard, addCommentWithPictureToCard
+from toolbox.trello_connector import updateDataToCard, addCommentToCard, addCommentWithPictureToCard, addCoverToCard
 
 
 app = Flask(__name__,static_url_path='/imgs',static_folder='static/images/')
@@ -152,6 +152,7 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
                 "distance" : item['distance'],
                 "title" : article['value']['title'],
                 "url" : article['value']['url'],
+                "content" : article['value']['content'],
             }
             # Use Meta's content to answer question by gpt
             if anthropic_setup:
@@ -393,7 +394,11 @@ def process_webhook(data):
                         "show_msg" : "[addCommentToCard] 卡片更新失敗",
                     }
             else:
+                wc_string = ""
                 for item in reversed(result_of_sentence['result']):
+                    # 設定文字雲累加文本
+                    wc_string += item['content'] + " "
+                    # 設定留言資訊
                     commit_msg = f"參考資料：\n[{item['title']}]({item['url']})（{item['id']}）\n"
                     if(anthropic_setup):
                         commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
@@ -413,6 +418,25 @@ def process_webhook(data):
                             "show_msg" : "[addCommentToCard] 留言失敗",
                         }
             # All Done
+            try:
+                # 產生文字雲
+                wc_img_path = generate_wordcloud(wc_string,card_id)
+                if(wc_img_path["state"]):
+                    # 更新封面
+                    addCoverToCard(card_id,wc_img_path["value"])
+                else:
+                    return {
+                        "state" : False,
+                        "err_msg" : wc_img_path["value"],
+                        "show_msg" : "[generate_wordcloud] 文字雲產生失敗",
+                    }
+            except Exception as exp:
+                return {
+                    "state" : False,
+                    "err_msg" : str(exp),
+                    "show_msg" : "[addCoverToCard] 卡片更新失敗",
+                }
+            
             return {
                 "state" : True,
                 "show_msg" : "留言成功",
