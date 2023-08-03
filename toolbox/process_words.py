@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer, util
 # 正體中文斷詞系統應用於大型語料庫之多方評估研究: https://aclanthology.org/2022.rocling-1.24.pdf
 import re
 import monpa
-monpa.load_userdict("./docs/process_words_monpa_dict.txt")
+monpa.load_userdict("./docs/monpa斷詞字典.txt")
 print('monpa_dict loaded')
 
 # Import modules of mongo_connector(For process_sentence)
