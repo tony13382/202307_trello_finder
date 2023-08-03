@@ -405,7 +405,7 @@ def process_webhook(data):
                         commit_msg += f"參考回答 B ：\n{item['answer_by_BERT']} \n"
                     # Add Comment
                     try:
-                        addCommentToCard(card_id,commit_msg)
+                        addCommentWithPictureToCard(card_id,f"https://raw.githubusercontent.com/tony13382/trello_helper_img/main/images/{item['id']}.png",commit_msg)
                     except Exception as exp:
                         return {
                             "state" : False,
