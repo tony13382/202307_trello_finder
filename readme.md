@@ -10,7 +10,7 @@
 | [jf-openhuninn-2.0.ttf](./static/others/jf-openhuninn-2.0.ttf) |  相依於 [process_words.py](./toolbox/process_words.py) 、 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 文字雲採用字體，[來源](https://justfont.com/huninn/) |
 | [stopwords_chinese.txt](./setting/stopwords_chinese.txt) | 相依於 [process_words.py](./toolbox/process_words.py) 、 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 斷詞停用字列表<br>（基於 [goto456/stopwords](https://github.com/goto456/stopwords) 哈工大停用词表擴充） |
 | [MONPA_斷詞字典.txt](./setting/MONPA_斷詞字典.txt) | 相依於 [process_words.py](./toolbox/process_words.py) | 斷詞權重調整 |
-| [vector_all.json](./docs/vector_all.json) |  df 備份檔案、相依於 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 包含所有文本向量化的 dataframe |
+| [vector_all.json](./docs/backup/vector_all.json) |  df 備份檔案、相依於 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 包含所有文本向量化的 dataframe |
 
 ### 備用資料
 | 文檔名稱 | 用途 | 備註 |

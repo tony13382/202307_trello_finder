@@ -7,6 +7,7 @@ load_dotenv()
 milvus_path = os.getenv("milvus_path")
 milvus_port = os.getenv("milvus_port")
 milvus_db_name = os.getenv("milvus_db_name")
+milvus_collection_name = os.getenv("milvus_collection_name")
 vector_index_type = os.getenv("vector_index_type")
 vector_metric_type = os.getenv("vector_metric_type")
 
@@ -20,10 +21,9 @@ conn = connections.connect(
 )
 
 # 設定 Milvus collection 名稱
-collection_name = 'trello_finder'
 
 # 建立 collection
-collection = Collection(collection_name)
+collection = Collection(milvus_collection_name)
 
 
 ## 搜尋 Top-K 相似文本
