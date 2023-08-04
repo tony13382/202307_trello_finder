@@ -64,7 +64,7 @@ def process_sentence(sentence):
 
     # 2. 去除停用词
     # 停用词表 ＃為基礎少數通用詞彙 ＃速度慢
-    stop_word_list = ["是什麼", "小幫手我想問", "我想問", "小幫手我想知道", "的原理","什麼是","常數","係數"]
+    stop_word_list = ["是什麼", "什麼是", "小幫手我想問", "我想問", "小幫手我想知道", "請問", "的原理", "常數", "係數"]
     for stop_word in stop_word_list:
         sentence = sentence.replace(stop_word, "")
     

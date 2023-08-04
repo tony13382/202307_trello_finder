@@ -17,6 +17,7 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 load_dotenv()
+action_word_list = ["小幫手我想問", "小幫手請問", "？", "?", "我想問", "請問", "是什麼", "什麼是"]
 not_found_msg_list = ["對不起，我還在學習，等我長大後再告訴你答案啦","你的問題好有趣，但我現在還不會 (´・ω・`)","我的小腦袋想不到 (╥﹏╥)，但我相信你的老師會的！"]
 distance_filter = float(os.getenv("distance_filter"))
 flask_server_port = int(os.getenv("flask_server_port"))
@@ -357,6 +358,7 @@ openai_setup = os.getenv("openai_setup") in ["True", "true", "1"]
 roBERTa_setup = os.getenv("roBERTa_setup") in ["True", "true", "1"]
 bert_setup = os.getenv("bert_setup") in ["True", "true", "1"]
 
+# Webhook 處理流程
 def process_webhook(data):
     try:
         # Convert Data
@@ -469,6 +471,13 @@ def process_webhook(data):
             "show_msg" : "[process_webhook] 資料處理失敗，請聯絡工程人員",
         }
 
+# 驗證文本是否包含動作關鍵字
+def check_action_word(input_string, action_word_list):
+    for action_word in action_word_list:
+        if action_word in input_string:
+            return True
+    return False
+
 @app.route('/webhook',methods=['POST','HEAD','GET'])
 def webhook_post():
     if request.method == 'POST':
@@ -482,36 +491,37 @@ def webhook_post():
                     card_id = req["action"]["data"]["card"]["id"]
                     ##board_id = req["action"]["data"]["board"]["id"]
                     
-                    if(user_input[0] == "!"):
-                        return ("", 200)
+                    # 檢查是否包含動作關鍵字
+                    if(check_action_word(user_input,action_word_list)):
+                        # Start to Search and Add Comment
+                        process_satae = process_webhook({
+                            "user_input" : user_input,
+                            "card_id" : card_id,
+                        })
 
-                    # Start to Search and Add Comment
-                    process_satae = process_webhook({
-                        "user_input" : user_input,
-                        "card_id" : card_id,
-                    })
-
-                    # Add Log to Server
-                    if(process_satae['state']):
-                        try:
-                            updateDataToCard(card_id, {
-                                "name" : f"[已完成] {user_input}",
-                            })
-                            # Add Success Log
-                            add_trello_log(card_id, True, process_satae["show_msg"],more_info=process_satae['more_info'])
-                        except Exception as exp:
-                            # Add Fail Log(Because of updateDataToCard)
-                            add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
+                        # Add Log to Server
+                        if(process_satae['state']):
+                            try:
+                                updateDataToCard(card_id, {
+                                    "name" : f"[已完成] {user_input}",
+                                })
+                                # Add Success Log
+                                add_trello_log(card_id, True, process_satae["show_msg"],more_info=process_satae['more_info'])
+                            except Exception as exp:
+                                # Add Fail Log(Because of updateDataToCard)
+                                add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
+                        else:
+                            try:
+                                updateDataToCard(card_id, {
+                                    "name" : f"[系統有誤] {user_input}",
+                                })
+                                # Add Fail Log(Because of process_webhook)
+                                add_trello_log(card_id, False,process_satae["show_msg"] + "\n\n" + process_satae["err_msg"])
+                            except Exception as exp:
+                                # Add Fail Log(Because of updateDataToCard)
+                                add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
                     else:
-                        try:
-                            updateDataToCard(card_id, {
-                                "name" : f"[系統有誤] {user_input}",
-                            })
-                            # Add Fail Log(Because of process_webhook)
-                            add_trello_log(card_id, False,process_satae["show_msg"] + "\n\n" + process_satae["err_msg"])
-                        except Exception as exp:
-                            # Add Fail Log(Because of updateDataToCard)
-                            add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
+                        print("不包含動作關鍵字: ",user_input)
             
             except Exception as exp:
                 print("Cannot 偵測到新增卡片\n",exp)
