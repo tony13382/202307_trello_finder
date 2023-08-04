@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer, util
 # 正體中文斷詞系統應用於大型語料庫之多方評估研究: https://aclanthology.org/2022.rocling-1.24.pdf
 import re
 import monpa
-monpa.load_userdict("./docs/MONPA_斷詞字典.txt")
+monpa.load_userdict("./setting/MONPA_斷詞字典.txt")
 print('monpa_dict loaded')
 
 
@@ -96,12 +96,12 @@ def load_stopwords(file_path):
     return stopwords
 
 # Load Chinese stop words
-stopwords_file = "docs/stopwords_chinese.txt"
+stopwords_file = "setting/stopwords_chinese.txt"
 stopwords = load_stopwords(stopwords_file)
 print("Load Chinese stop words Done")
 
 # Generate a word cloud image
-chinese_font_path = "docs/jf-openhuninn-2.0.ttf"
+chinese_font_path = "static/others/jf-openhuninn-2.0.ttf"
 print("Load Chinese font Done")
 
 def generate_wordcloud(input_string, filename="ram"):
