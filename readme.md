@@ -18,6 +18,7 @@
 | [0926_new.xlsx](./docs/文章原始資料/0926_new.xlsx) |  原始文章資料 | 學姊於 07/20 交接 |
 | [static / images / *.png](./static/images) | 文字雲圖片備份 | 對應 `原始資料 df.index` |
 | [tony13382/trello_helper_img・Github*](https://github.com/tony13382/trello_helper_img) | 圖床 | 用於文章文字雲展示 |
+！部分資料不上載
 
 ### 技術文件
 | 文檔名稱 | 用途 | 備註 |
