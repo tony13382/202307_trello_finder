@@ -80,6 +80,3 @@
     ],
 }
 ```
-
-## Other Data:
-Webhook id : **64be32eeb534868609690ed1**
