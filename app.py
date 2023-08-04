@@ -10,11 +10,16 @@ import json
 # 用於隨機抽取回應（無答案時）
 import random
 
+# 用於計算時間
+from datetime import datetime
+
 # Setup environment value
 import os
 from dotenv import load_dotenv
 load_dotenv()
 not_found_msg_list = ["對不起，我還在學習，等我長大後再告訴你答案啦","你的問題好有趣，但我現在還不會 (´・ω・`)","我的小腦袋想不到 (╥﹏╥)，但我相信你的老師會的！"]
+distance_filter = float(os.getenv("distance_filter"))
+flask_server_port = int(os.getenv("flask_server_port"))
 
 # SBERT 編碼模組
 from toolbox.process_words import embedding_sentence, process_sentence, generate_wordcloud
@@ -139,8 +144,8 @@ def vector_post():
 def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setup=False,roBERTa_setup=False,bert_setup=False):
     return_array = []
     for item in req_array:
-        # IF distance < 2, break and return 相關性不足的文章
-        if(item['distance'] < 2):
+        # IF distance < 設定值, break and return 相關性不足的文章
+        if(item['distance'] < distance_filter):
             break
 
         # Use track_id to find Ariicle (Only one article)
@@ -384,9 +389,11 @@ def process_webhook(data):
         if(result_of_sentence['state']):
             # Add Comment
             if(len(result_of_sentence['result']) == 0):
+                # Not Find Data so return random message
                 commit_msg = random.choice(not_found_msg_list)
                 try:
                     addCommentToCard(card_id, commit_msg)
+                    addCoverToCard(card_id,"./static/images/not_found.png")
                 except Exception as exp:
                     return {
                         "state" : False,
@@ -417,25 +424,26 @@ def process_webhook(data):
                             "err_msg" : str(exp),
                             "show_msg" : "[addCommentToCard] 留言失敗",
                         }
-            # All Done
-            try:
-                # 產生文字雲
-                wc_img_path = generate_wordcloud(wc_string,card_id)
-                if(wc_img_path["state"]):
-                    # 更新封面
-                    addCoverToCard(card_id,wc_img_path["value"])
-                else:
+                
+                # All Done
+                try:
+                    # 產生文字雲
+                    wc_img_path = generate_wordcloud(wc_string,card_id)
+                    if(wc_img_path["state"]):
+                        # 更新封面
+                        addCoverToCard(card_id,wc_img_path["value"])
+                    else:
+                        return {
+                            "state" : False,
+                            "err_msg" : wc_img_path["value"],
+                            "show_msg" : "[generate_wordcloud] 文字雲產生失敗",
+                        }
+                except Exception as exp:
                     return {
                         "state" : False,
-                        "err_msg" : wc_img_path["value"],
-                        "show_msg" : "[generate_wordcloud] 文字雲產生失敗",
+                        "err_msg" : str(exp),
+                        "show_msg" : "[addCoverToCard] 卡片更新失敗",
                     }
-            except Exception as exp:
-                return {
-                    "state" : False,
-                    "err_msg" : str(exp),
-                    "show_msg" : "[addCoverToCard] 卡片更新失敗",
-                }
             
             return {
                 "state" : True,
@@ -517,5 +525,9 @@ def serve_image(filename):
     return redirect(image_path)
 
 if __name__ == '__main__':
+    # Set Debug Mode （每次儲存自動刷新，正式上線需要關閉）
     app.debug = True
-    app.run(host="0.0.0.0")
+    # Run Server on 0.0.0.0 （允許外部連線）
+    app.run(host="0.0.0.0",port=flask_server_port)
+    # Print Server Start Time
+    print("Server Start at",datetime.datetime.now())

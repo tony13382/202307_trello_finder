@@ -7,8 +7,8 @@
 | 文檔名稱 | 用途 | 備註 |
 | :--- | :--- | :--- |
 | [doc_converter.ipynb](./docs/doc_converter.ipynb) | 資料轉換 | 文字雲、mongo milvus 資料庫轉存 |
-| [jf-openhuninn-2.0.ttf](./docs/jf-openhuninn-2.0.ttf) |  相依於 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 文字雲採用字體，[來源](https://justfont.com/huninn/) |
-| [stopwords_chinese.txt](./docs/stopwords_chinese.txt) | 相依於 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 斷詞停用字列表<br>（基於 [goto456/stopwords](https://github.com/goto456/stopwords) 哈工大停用词表擴充） |
+| [jf-openhuninn-2.0.ttf](./docs/jf-openhuninn-2.0.ttf) |  相依於 [process_words.py](./toolbox/process_words.py) 、 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 文字雲採用字體，[來源](https://justfont.com/huninn/) |
+| [stopwords_chinese.txt](./docs/stopwords_chinese.txt) | 相依於 [process_words.py](./toolbox/process_words.py) 、 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 斷詞停用字列表<br>（基於 [goto456/stopwords](https://github.com/goto456/stopwords) 哈工大停用词表擴充） |
 | [MONPA_斷詞字典.txt](./docs/MONPA_斷詞字典.txt) | 相依於 [process_words.py](./toolbox/process_words.py) | 斷詞權重調整 |
 | [vector_all.json](./docs/vector_all.json) |  df 備份檔案、相依於 [doc_converter.ipynb](./docs/doc_converter.ipynb) | 包含所有文本向量化的 dataframe |
 
