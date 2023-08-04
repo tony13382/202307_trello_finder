@@ -417,6 +417,9 @@ def process_webhook(data):
                         commit_msg += f"參考回答 B ：\n{item['answer_by_BERT']} \n"
                     # Add Comment
                     try:
+                        # 留言不包含圖片
+                        # addCommentToCard(card_id,commit_msg)
+                        # 留言包含圖片
                         addCommentWithPictureToCard(card_id,f"https://raw.githubusercontent.com/tony13382/trello_helper_img/main/images/{item['id']}.png",commit_msg)
                     except Exception as exp:
                         return {
@@ -509,10 +512,12 @@ def webhook_post():
                         except Exception as exp:
                             # Add Fail Log(Because of updateDataToCard)
                             add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
-            except:
+            
+            except Exception as exp:
+                print("Cannot 偵測到新增卡片\n",exp)
                 pass
         except:
-            print("null Request")
+            print("null Request, It may be a check request")
 
     return ("", 200)
 
@@ -529,5 +534,3 @@ if __name__ == '__main__':
     app.debug = True
     # Run Server on 0.0.0.0 （允許外部連線）
     app.run(host="0.0.0.0",port=flask_server_port)
-    # Print Server Start Time
-    print("Server Start at",datetime.datetime.now())

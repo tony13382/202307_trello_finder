@@ -45,6 +45,7 @@
 | [SentenceTransformers Documentation*](https://www.sbert.net/index.html) | 第三方技術文件 | SBERT（文本向量化） 技術說明與介紹 |
 | [罔拍 MONPA GitHub*](https://github.com/monpa-team/monpa) | 第三方技術文件 | MONPA（斷詞模組） 說明與介紹 |
 | [正體中文斷詞系統應用於大型語料庫之多方評估研究*](https://aclanthology.org/2022.rocling-1.24.pdf) | 論文 | 斷詞模組相關論文（作為選擇依據） |
+| [shigureni free illust*](https://www.shigureni.com/) | 圖庫 | 開發中使用的圖庫（可商用） |
 
 ---
 
