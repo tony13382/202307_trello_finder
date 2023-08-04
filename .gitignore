@@ -4,3 +4,4 @@ docs/images/*
 static/images/wordCloud/*
 docs/jf-openhuninn-2.0.ttf
 .tmp.driveupload
+*.env
