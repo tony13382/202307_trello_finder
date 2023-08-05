@@ -5,7 +5,6 @@ import re
 from flask import Flask
 from flask import render_template, jsonify, redirect
 from flask import request
-import json
 
 # 用於隨機抽取回應（無答案時）
 import random
@@ -46,7 +45,7 @@ from toolbox.process_words import embedding_sentence, process_sentence, generate
 # Milvus 向量搜尋與運算模組
 from toolbox.vector_search import search_vector
 # MongoDB 文章搜尋模組
-from toolbox.mongo_connector import article_search,add_trello_log, close_word_search
+from toolbox.mongo_connector import article_search,add_trello_log
 # GPT 回答模組
 from toolbox.answer_core import qa_by_anthropic, qa_by_openai, qa_by_RoBERTa, qa_by_bert
 # Trello 模組
@@ -414,21 +413,25 @@ bert_setup = os.getenv("bert_setup") in ["True", "true", "1"]
 def process_webhook(data):
     try:
         # Convert Data
+        
         print(data)
         user_input = data["user_input"]
         card_id = data["card_id"]
+        checkIsTrello = data["is_trello"]
         fuzzy_sentence = process_sentence(user_input)
-        try:
-            updateDataToCard(card_id, {
-                "name" : f"[進行中] {user_input}",
-                "desc" : f"**關鍵字推薦：** \n\n{fuzzy_sentence}",
-            })
-        except Exception as exp:
-            return {
-                "state" : False,
-                "err_msg" : str(exp),
-                "show_msg" : "[updateDataToCard] 卡片更新失敗",
-            }
+        
+        if(checkIsTrello):
+            try:
+                updateDataToCard(card_id, {
+                    "name" : f"[進行中] {user_input}",
+                    "desc" : f"**關鍵字推薦：** \n\n{fuzzy_sentence}",
+                })
+            except Exception as exp:
+                return {
+                    "state" : False,
+                    "err_msg" : str(exp),
+                    "show_msg" : "[updateDataToCard] 卡片更新失敗",
+                }
         
         
         result_of_sentence = process_sentence_to_article_list(user_input,
@@ -445,15 +448,17 @@ def process_webhook(data):
             if(len(result_of_sentence['result']) == 0):
                 # Not Find Data so return random message
                 commit_msg = random.choice(not_found_msg_list)
-                try:
-                    addCommentToCard(card_id, commit_msg)
-                    addCoverToCard(card_id,"./static/images/not_found.png")
-                except Exception as exp:
-                    return {
-                        "state" : False,
-                        "err_msg" : str(exp),
-                        "show_msg" : "[addCommentToCard] 卡片更新失敗",
-                    }
+
+                if(checkIsTrello):
+                    try:
+                        addCommentToCard(card_id, commit_msg)
+                        addCoverToCard(card_id,"./static/images/not_found.png")
+                    except Exception as exp:
+                        return {
+                            "state" : False,
+                            "err_msg" : str(exp),
+                            "show_msg" : "[addCommentToCard] 卡片更新失敗",
+                        }
             else:
                 wc_string = ""
                 for item in reversed(result_of_sentence['result']):
@@ -469,32 +474,35 @@ def process_webhook(data):
                         commit_msg += f"參考回答 RB ：\n{item['answer_by_RoBERTa']} \n"
                     if(bert_setup):
                         commit_msg += f"參考回答 B ：\n{item['answer_by_BERT']} \n"
-                    # Add Comment
-                    try:
-                        # 留言不包含圖片
-                        # addCommentToCard(card_id,commit_msg)
-                        # 留言包含圖片
-                        addCommentWithPictureToCard(card_id,f"https://raw.githubusercontent.com/tony13382/trello_helper_img/main/images/{item['id']}.png",commit_msg)
-                    except Exception as exp:
-                        return {
-                            "state" : False,
-                            "err_msg" : str(exp),
-                            "show_msg" : "[addCommentToCard] 留言失敗",
-                        }
+                    
+                    if(checkIsTrello):
+                        # Add Comment
+                        try:
+                            # 留言不包含圖片
+                            # addCommentToCard(card_id,commit_msg)
+                            # 留言包含圖片
+                            addCommentWithPictureToCard(card_id,f"https://raw.githubusercontent.com/tony13382/trello_helper_img/main/images/{item['id']}.png",commit_msg)
+                        except Exception as exp:
+                            return {
+                                "state" : False,
+                                "err_msg" : str(exp),
+                                "show_msg" : "[addCommentToCard] 留言失敗",
+                            }
                 
                 # All Done
                 try:
-                    # 產生文字雲
-                    wc_img_path = generate_wordcloud(wc_string,card_id)
-                    if(wc_img_path["state"]):
-                        # 更新封面
-                        addCoverToCard(card_id,wc_img_path["value"])
-                    else:
-                        return {
-                            "state" : False,
-                            "err_msg" : wc_img_path["value"],
-                            "show_msg" : "[generate_wordcloud] 文字雲產生失敗",
-                        }
+                    if(checkIsTrello):
+                        # 產生文字雲
+                        wc_img_path = generate_wordcloud(wc_string,card_id)
+                        if(wc_img_path["state"]):
+                            # 更新封面
+                            addCoverToCard(card_id,wc_img_path["value"])
+                        else:
+                            return {
+                                "state" : False,
+                                "err_msg" : wc_img_path["value"],
+                                "show_msg" : "[generate_wordcloud] 文字雲產生失敗",
+                            }
                 except Exception as exp:
                     return {
                         "state" : False,
@@ -549,6 +557,7 @@ def webhook_post():
                         process_satae = process_webhook({
                             "user_input" : user_input,
                             "card_id" : card_id,
+                            "is_trello" : True,
                         })
 
                         # Add Log to Server
