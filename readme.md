@@ -1,6 +1,6 @@
 # Trello 知識小幫手 2.0
 ![Cover of plan](./static/cover/cover.png)
-清華大學 學習科學與科技研究所 區國良老師研究室計劃案 **（Trello 知識小幫手 2.0）** <br>開發者：清華大學 學習科學與科技研究所 **呂亮進**
+<br><br>清華大學 學習科學與科技研究所 區國良老師研究室計劃案 **（Trello 知識小幫手 2.0）** <br>開發者：清華大學 學習科學與科技研究所 **呂亮進**
 
 ---
 ### 運用中不可處置資料
@@ -21,7 +21,7 @@
 | [static / images / *.png](./static/images) | 文字雲圖片備份 | 對應 `原始資料 df.index` |
 | [tony13382/trello_helper_img・Github*](https://github.com/tony13382/trello_helper_img) | 圖床 | 用於文章文字雲展示 |
 
->！部分資料不上載
+> ⚠｜部分資料不上載
 
 ### 技術文件
 | 文檔名稱 | 用途 | 備註 |
