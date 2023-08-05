@@ -24,6 +24,25 @@ from toolbox.mongo_connector import close_word_search
 sbert_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
 print('sbert_model loaded')
 
+# 讀取文字檔並轉換成串列
+def txt_to_list(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.readlines()
+            content = [line.strip() for line in content]
+        return content
+    except FileNotFoundError:
+        print("找不到指定的檔案。請檢查檔案路徑是否正確。")
+        return []
+    except Exception as e:
+        print("讀取檔案時發生錯誤：", e)
+        return []
+
+# 指定文字檔路徑
+file_path = 'your_file.txt'  # 請替換成實際的檔案路徑
+action_word_list = txt_to_list("./setting/action_word_list.txt")
+
+
 ####################
 ## 轉換文本至向量
 # Request Value
@@ -54,7 +73,7 @@ def embedding_sentence(sentence):
 # Response Value
 # => String
 ####################
-def process_sentence(sentence):
+def process_sentence(sentence, close_word_search_setup=True):
     # 1. 去除標點符號
     # 使用正则表达式匹配标点符号，并将其替换为空字符串
     # \p{P} 表示 Unicode 标点符号
@@ -64,7 +83,9 @@ def process_sentence(sentence):
 
     # 2. 去除停用词
     # 停用词表 ＃為基礎少數通用詞彙 ＃速度慢
-    stop_word_list = ["是什麼", "什麼是", "小幫手我想問", "我想問", "小幫手我想知道", "請問", "的原理", "常數", "係數"]
+    
+    stop_word_list = ["的原理", "常數", "係數", "定律"]
+    stop_word_list.extend(action_word_list)
     for stop_word in stop_word_list:
         sentence = sentence.replace(stop_word, "")
     
@@ -72,7 +93,10 @@ def process_sentence(sentence):
     word_list = monpa.cut(sentence)
     
     # 4. 去除停用词並套用 close_word_search
-    word_list = [close_word_search(word) for word in word_list]
+    if(close_word_search_setup == True):
+        word_list = [close_word_search(word) for word in word_list]
+    else:
+        word_list = [word for word in word_list]
 
     # 将词列表拼接成句子
     sentence = ' '.join(word_list)

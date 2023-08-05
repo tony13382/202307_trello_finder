@@ -51,6 +51,8 @@ from toolbox.mongo_connector import article_search,add_trello_log, close_word_se
 from toolbox.answer_core import qa_by_anthropic, qa_by_openai, qa_by_RoBERTa, qa_by_bert
 # Trello 模組
 from toolbox.trello_connector import updateDataToCard, addCommentToCard, addCommentWithPictureToCard, addCoverToCard
+# Vector 計算模組
+import toolbox.vector_calc as vector_calculation
 
 
 app = Flask(__name__,static_url_path='/imgs',static_folder='static/images/')
@@ -239,9 +241,39 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
     }
 
 def process_sentence_to_article_list(sentence,setup):
-    # 轉換成向量
+    # 處理句子
+    orginal_sentence = process_sentence(sentence, close_word_search_setup = False )
     fuzzy_sentence = process_sentence(sentence)
-    q_vector = embedding_sentence(fuzzy_sentence)
+    
+    # 轉換成向量
+    o_vector = embedding_sentence(orginal_sentence)
+    f_vector = embedding_sentence(fuzzy_sentence)
+    q_vector = f_vector
+
+    
+    ## 權重計算與調整
+    orginal_weight = 1
+    fuzzy_weight = 1
+
+
+    if(o_vector['state'] and f_vector['state']):
+        q_vector["value"] = vector_calculation.calc_array_mean(
+            set = [{
+                "array" : o_vector['value'],
+                "weight" : orginal_weight,
+            },{
+                "array" : f_vector['value'],
+                "weight" : fuzzy_weight,
+            }],
+            len_array = 768
+        )
+    else:
+        return {
+            "state" : False,
+            "err_msg" : "句子轉換向量失敗\n" + o_vector['value'] + "\n\n" + f_vector['value'],
+            "show_msg" : "句子轉換向量失敗，請聯絡工程人員",
+            "error_code" : 504,
+        }
     
     # Get Value Setup
     if "limit" in setup:
@@ -280,6 +312,7 @@ def process_sentence_to_article_list(sentence,setup):
         limit = int(limit)
         offset = int(offset)
     
+
         # Get Similar Article
         result = search_vector(q_vector["value"], limit=limit, offset=offset)
         
