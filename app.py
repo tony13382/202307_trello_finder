@@ -1,5 +1,5 @@
 # coding:utf-8
-import ast
+import ast # 用於將字串轉換成串列
 import re
 
 from flask import Flask
@@ -10,17 +10,36 @@ import json
 # 用於隨機抽取回應（無答案時）
 import random
 
-# 用於計算時間
-from datetime import datetime
-
+# +-------------------------------------------------------+
 # Setup environment value
 import os
 from dotenv import load_dotenv
 load_dotenv()
-action_word_list = ["小幫手我想問", "小幫手請問", "？", "?", "我想問", "請問", "是什麼", "什麼是"]
-not_found_msg_list = ["對不起，我還在學習，等我長大後再告訴你答案啦","你的問題好有趣，但我現在還不會 (´・ω・`)","我的小腦袋想不到 (╥﹏╥)，但我相信你的老師會的！"]
 distance_filter = float(os.getenv("distance_filter"))
 flask_server_port = int(os.getenv("flask_server_port"))
+
+
+# 讀取文字檔並轉換成串列
+def txt_to_list(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.readlines()
+            content = [line.strip() for line in content]
+        return content
+    except FileNotFoundError:
+        print("找不到指定的檔案。請檢查檔案路徑是否正確。")
+        return []
+    except Exception as e:
+        print("讀取檔案時發生錯誤：", e)
+        return []
+
+# 指定文字檔路徑
+file_path = 'your_file.txt'  # 請替換成實際的檔案路徑
+action_word_list = txt_to_list("./setting/action_word_list.txt")
+not_found_msg_list = txt_to_list("./setting/not_found_msg_list.txt")
+print("啟動詞與無資料罐頭訊息載入完成！")
+# +-------------------------------------------------------+
+
 
 # SBERT 編碼模組
 from toolbox.process_words import embedding_sentence, process_sentence, generate_wordcloud
