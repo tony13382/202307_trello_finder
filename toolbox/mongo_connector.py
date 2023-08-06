@@ -40,6 +40,20 @@ def article_search(article_id):
             "value" : "未找到符合條件的文件。" + str(article_id),
         }
 
+def fuzzy_word_search(word):
+    return_str = word
+    # Value => Key (Contain)
+    pattern = f".*{word}.*"
+    query_muilt = {"value": {"$regex": pattern, "$options": "i"}}  # "i" for case-insensitive search
+    # 搜尋符合條件的文件
+    result_muilt = mongo_close_word_collection.find(query_muilt)
+    if result_muilt is not None and len(word) > 1:
+        for item in result_muilt:
+            return_str = return_str + " " + item["key"] 
+        return return_str
+    else:
+        return return_str
+        
 
 ####################
 ## 搜尋相似文字
@@ -51,14 +65,21 @@ def article_search(article_id):
 # result : String
 ####################
 def close_word_search(word):
-    # 搜尋符合條件的文件
+    
+    return_str = word
+    
+    # Key => Value
     query = {"key": word}
+    # 搜尋符合條件的文件
     result = mongo_close_word_collection.find_one(query)
+    
     # 處理搜尋結果
-    if result:
-        return word + "：" + result["value"] + "\n"
+    if result is not None:
+        return_str = return_str + " : " + str(result["value"]) + "\n"
     else:
-        return str(word)
+        return_str = return_str + " : " + fuzzy_word_search(word) + "\n"
+    
+    return return_str
 
 
 ####################

@@ -39,7 +39,6 @@ def txt_to_list(file_path):
         return []
 
 # 指定文字檔路徑
-file_path = 'your_file.txt'  # 請替換成實際的檔案路徑
 action_word_list = txt_to_list("./setting/action_word_list.txt")
 
 

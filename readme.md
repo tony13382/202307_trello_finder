@@ -8,7 +8,7 @@
 | :--- | :--- | :--- |
 | [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 資料轉換模塊 | 文字雲、mongo milvus 資料庫轉存... |
 | [jf-openhuninn-2.0.ttf](./static/others/jf-openhuninn-2.0.ttf) |  相依於 [process_words.py](./toolbox/process_words.py) 、 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 文字雲採用字體，[來源](https://justfont.com/huninn/) |
-| [stopwords_chinese.txt](./setting/stopwords_chinese.txt) | 相依於 [process_words.py](./toolbox/process_words.py) 、 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 斷詞停用字列表<br>（基於 [goto456/stopwords](https://github.com/goto456/stopwords) 哈工大停用词表擴充） |
+| [stopwords_chinese.txt](./setting/stopwords_chinese.txt) | 相依於 [process_words.py](./toolbox/process_words.py) 、 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 斷詞停用字列表<br>（基於 [baipengyan/Chinese-StopWords](https://github.com/baipengyan/Chinese-StopWords/blob/master/ChineseStopWords.txt) 停用表翻譯＋擴充） |
 | [MONPA_斷詞字典.txt](./setting/MONPA_斷詞字典.txt) | 相依於 [process_words.py](./toolbox/process_words.py) | 斷詞權重調整 |
 | [action_word_list.txt](./setting/action_word_list.txt) | 相依於 [app.py](./app.py) | Trello 啟動詞設定 |
 | [not_found_msg_list.txt](./setting/not_found_msg_list.txt) | 相依於 [app.py](./app.py) | 無資料罐頭訊息設定 |
