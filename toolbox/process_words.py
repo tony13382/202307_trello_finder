@@ -127,7 +127,7 @@ print("Load Chinese stop words Done")
 chinese_font_path = "static/others/jf-openhuninn-2.0.ttf"
 print("Load Chinese font Done")
 
-def generate_wordcloud(input_string, filename="ram"):
+def generate_wordcloud(input_string, filename="0_wordcloud"):
     try:
         # Process the input string
         words = monpa.cut(input_string)

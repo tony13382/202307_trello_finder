@@ -493,7 +493,7 @@ def process_webhook(data):
                 try:
                     if(checkIsTrello):
                         # 產生文字雲
-                        wc_img_path = generate_wordcloud(wc_string,card_id)
+                        wc_img_path = generate_wordcloud(wc_string)
                         if(wc_img_path["state"]):
                             # 更新封面
                             addCoverToCard(card_id,wc_img_path["value"])
