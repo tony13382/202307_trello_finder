@@ -460,11 +460,15 @@ def process_webhook(data):
                             "show_msg" : "[addCommentToCard] 卡片更新失敗",
                         }
             else:
+                #Define String to generate wordcloud
                 wc_string = ""
+
+                # Process Result (Send to trello, convert commitmsg)
                 for item in reversed(result_of_sentence['result']):
-                    # 設定文字雲累加文本
+                    # 設定文字雲累加文本(文章內容)
                     wc_string += item['content'] + " "
-                    # 設定留言資訊
+                    
+                    # 設定留言資訊（Answer Core）
                     commit_msg = f"參考資料：\n[{item['title']}]({item['url']})（{item['id']}）\n"
                     if(anthropic_setup):
                         commit_msg += f"參考回答 A ：\n{item['answer_by_anthropic']} \n"
@@ -478,9 +482,9 @@ def process_webhook(data):
                     if(checkIsTrello):
                         # Add Comment
                         try:
-                            # 留言不包含圖片
+                            # 留言不包含圖片 v1
                             # addCommentToCard(card_id,commit_msg)
-                            # 留言包含圖片
+                            # 留言包含圖片 v2 up
                             addCommentWithPictureToCard(card_id,f"https://raw.githubusercontent.com/tony13382/trello_helper_img/main/images/{item['id']}.png",commit_msg)
                         except Exception as exp:
                             return {
@@ -544,12 +548,28 @@ def webhook_post():
         try:
             req = request.json
             try:
-                if(req["action"]["type"] == "createCard"):
-                    # Get Data
-                    print("偵測到新增卡片")
-                    user_input = req["action"]["data"]["card"]["name"]
-                    card_id = req["action"]["data"]["card"]["id"]
-                    ##board_id = req["action"]["data"]["board"]["id"]
+                run_system = False
+                # Define to Check Trello Action
+                if  "action" in req.keys():
+                    if  "type" in req["action"].keys():
+                        print("偵測到新增卡片")
+                        check_trello_action = True
+                        run_system = True
+                    else:
+                        check_trello_action = False
+                        if req["action"] == "api":
+                            print("偵測到新調試指令")
+                            run_system = True
+
+                if(run_system):
+                    
+                    if(check_trello_action):
+                        user_input = req["action"]["data"]["card"]["name"]
+                        card_id = req["action"]["data"]["card"]["id"]
+                        #board_id = req["action"]["data"]["board"]["id"]
+                    else:
+                        user_input = req["user_input"]
+                        card_id = req["card_id"]
                     
                     # 檢查是否包含動作關鍵字
                     if(check_action_word(user_input,action_word_list)):
@@ -557,7 +577,7 @@ def webhook_post():
                         process_satae = process_webhook({
                             "user_input" : user_input,
                             "card_id" : card_id,
-                            "is_trello" : True,
+                            "is_trello" : check_trello_action,
                         })
 
                         # Add Log to Server
@@ -583,7 +603,6 @@ def webhook_post():
                                 add_trello_log(card_id, False, "Card Retitle Error" + "\n\n" + str(exp))
                     else:
                         print("不包含動作關鍵字: ",user_input)
-            
             except Exception as exp:
                 print("Cannot 偵測到新增卡片\n",exp)
                 pass
