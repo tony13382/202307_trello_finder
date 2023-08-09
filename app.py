@@ -550,11 +550,14 @@ def webhook_post():
             try:
                 run_system = False
                 # Define to Check Trello Action
+                
                 if  "action" in req.keys():
                     if  "type" in req["action"].keys():
-                        print("偵測到新增卡片")
                         check_trello_action = True
-                        run_system = True
+                        print("偵測到 Trello Action",req["action"]["type"])
+                        if(req["action"]["type"] == "createCard"):
+                            print("偵測到新增卡片")
+                            run_system = True
                     else:
                         check_trello_action = False
                         if req["action"] == "api":
