@@ -241,8 +241,8 @@ def process_milvus_result(req_array, sentence ,anthropic_setup=False,openai_setu
 
 def process_sentence_to_article_list(sentence,setup):
     # 處理句子
-    orginal_sentence = process_sentence(sentence, close_word_search_setup = False )
-    fuzzy_sentence = process_sentence(sentence)
+    orginal_sentence = process_sentence(sentence, close_word_search_setup = False ) #只清洗文字
+    fuzzy_sentence = process_sentence(sentence) #清洗文字並且進行相似詞搜尋
     
     # 轉換成向量
     o_vector = embedding_sentence(orginal_sentence)
@@ -413,7 +413,6 @@ bert_setup = os.getenv("bert_setup") in ["True", "true", "1"]
 def process_webhook(data):
     try:
         # Convert Data
-        
         print(data)
         user_input = data["user_input"]
         card_id = data["card_id"]
@@ -546,6 +545,7 @@ def check_action_word(input_string, action_word_list):
 def webhook_post():
     if request.method == 'POST':
         try:
+            # Get Request Data
             req = request.json
             try:
                 run_system = False
