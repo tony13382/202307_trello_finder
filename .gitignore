@@ -3,6 +3,7 @@ docs/開發文本資料/hideInfo.md
 docs/backup/*
 docs/vector_all.json
 docs/images/*
+static/images/new_wordCloud/*
 static/images/wordCloud/*
 docs/jf-openhuninn-2.0.ttf
 .tmp.driveupload

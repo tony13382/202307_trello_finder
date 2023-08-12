@@ -3047,3 +3047,8 @@ becoming
 当中
 仍旧
 inner
+frac
+原理
+定律
+係數
+常數

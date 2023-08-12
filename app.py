@@ -484,7 +484,7 @@ def process_webhook(data):
                             # 留言不包含圖片 v1
                             # addCommentToCard(card_id,commit_msg)
                             # 留言包含圖片 v2 up
-                            addCommentWithPictureToCard(card_id,f"https://raw.githubusercontent.com/tony13382/trello_helper_img/main/images/{item['id']}.png",commit_msg)
+                            addCommentWithPictureToCard(card_id,f"https://raw.githubusercontent.com/tony13382/trello_helper_img_w/main/{item['id']}.png",commit_msg)
                         except Exception as exp:
                             return {
                                 "state" : False,
