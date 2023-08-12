@@ -10,20 +10,6 @@ import monpa
 monpa.load_userdict("./setting/MONPA_斷詞字典.txt")
 print('monpa_dict loaded')
 
-
-# Import modules of wordCloud
-import matplotlib.pyplot as plt
-from wordcloud import WordCloud
-
-
-# Import modules of mongo_connector(For process_sentence)
-from toolbox.mongo_connector import close_word_search
-
-# Select model by transformer
-# about model: https://huggingface.co/sentence-transformers/paraphrase-multilingual-mpnet-base-v2
-sbert_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
-print('sbert_model loaded')
-
 # 讀取文字檔並轉換成串列
 def txt_to_list(file_path):
     try:
@@ -37,6 +23,24 @@ def txt_to_list(file_path):
     except Exception as e:
         print("讀取檔案時發生錯誤：", e)
         return []
+
+
+# 指定文字檔路徑
+stop_word_list = txt_to_list("../../setting/stopwords_chinese.txt")
+print('stop_word_list loaded')
+
+# Import modules of wordCloud
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+
+
+# Import modules of mongo_connector(For process_sentence)
+from toolbox.mongo_connector import close_word_search
+
+# Select model by transformer
+# about model: https://huggingface.co/sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+sbert_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+print('sbert_model loaded')
 
 # 指定文字檔路徑
 action_word_list = txt_to_list("./setting/action_word_list.txt")
@@ -62,7 +66,6 @@ def embedding_sentence(sentence):
             "state" : False,
             "value" : str(exp),
         }
-
 
 ####################
 ## 整理文本並注入資料
