@@ -13,7 +13,7 @@ client = MongoClient(mongodb_path)
 db = client.nthu_trello_helper
 mongo_article_collection = db.article
 mongo_trello_log_collection = db.trello_log
-mongo_close_word_collection = db.close_words
+mongo_word_injection_collection = db.injection_list
 
 ####################
 ## 搜尋文章
@@ -46,7 +46,7 @@ def fuzzy_word_search(word):
     pattern = f".*{word}.*"
     query_muilt = {"value": {"$regex": pattern, "$options": "i"}}  # "i" for case-insensitive search
     # 搜尋符合條件的文件
-    result_muilt = mongo_close_word_collection.find(query_muilt)
+    result_muilt = mongo_word_injection_collection.find(query_muilt)
     if result_muilt is not None and len(word) > 1:
         for item in result_muilt:
             return_str = return_str + " " + item["key"] 
@@ -71,7 +71,7 @@ def close_word_search(word):
     # Key => Value
     query = {"key": word}
     # 搜尋符合條件的文件
-    result = mongo_close_word_collection.find_one(query)
+    result = mongo_word_injection_collection.find_one(query)
     
     # 處理搜尋結果
     if result is not None:
