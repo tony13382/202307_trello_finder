@@ -43,7 +43,7 @@ def qa_by_anthropic(source_content, question):
                 \n
                 採用我提供的資料用繁體中文嘗試定義或回答：{question}，如果發現內容無法回答則回覆「無法提供最佳答案」。
                 這是單次問答無須說明開頭與結尾 \nAssistant:
-            """,
+            """.encode('utf-8'),
         )
         return {
             "state": True,
@@ -53,7 +53,7 @@ def qa_by_anthropic(source_content, question):
         return {
             "state": False,
             "value": str(exp),
-       }
+        }
     
 
 def qa_by_openai(source_content,question):
@@ -77,7 +77,7 @@ def qa_by_openai(source_content,question):
         return {
             "state": False,
             "value": str(exp),
-       }
+        }
 
 
 def qa_by_RoBERTa(source_content,question):
@@ -92,7 +92,7 @@ def qa_by_RoBERTa(source_content,question):
         return {
             "state": False,
             "value": str(exp),
-       }
+        }
 
 
 def qa_by_bert(source_content,question):
@@ -110,7 +110,7 @@ def qa_by_bert(source_content,question):
         return {
             "state": False,
             "value": str(exp),
-       }
+        }
 
 
 

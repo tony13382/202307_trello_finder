@@ -18,7 +18,7 @@ def txt_to_list(file_path):
             content = [line.strip() for line in content]
         return content
     except FileNotFoundError:
-        print("找不到指定的檔案。請檢查檔案路徑是否正確。")
+        print("找不到指定的檔案。請檢查檔案路徑是否正確。", file_path)
         return []
     except Exception as e:
         print("讀取檔案時發生錯誤：", e)
@@ -26,7 +26,7 @@ def txt_to_list(file_path):
 
 
 # 指定文字檔路徑
-stop_word_list = txt_to_list("../../setting/stopwords_chinese.txt")
+stop_word_list = txt_to_list("./setting/stopwords_chinese.txt")
 print('stop_word_list loaded')
 
 # Import modules of wordCloud
@@ -35,7 +35,7 @@ from wordcloud import WordCloud
 
 
 # Import modules of mongo_connector(For process_sentence)
-from toolbox.mongo_connector import close_word_search
+from modules.tools.mongo_connector import process_injectionword
 
 # Select model by transformer
 # about model: https://huggingface.co/sentence-transformers/paraphrase-multilingual-mpnet-base-v2
@@ -75,7 +75,7 @@ def embedding_sentence(sentence):
 # Response Value
 # => String
 ####################
-def process_sentence(sentence, close_word_search_setup=True):
+def process_sentence(sentence, process_injectionword_setup=True):
     # 1. 去除標點符號
     # 使用正则表达式匹配标点符号，并将其替换为空字符串
     # \p{P} 表示 Unicode 标点符号
@@ -94,9 +94,9 @@ def process_sentence(sentence, close_word_search_setup=True):
     # 3. 将句子切割成词
     word_list = monpa.cut(sentence)
     
-    # 4. 去除停用词並套用 close_word_search
-    if(close_word_search_setup == True):
-        word_list = [close_word_search(word) for word in word_list]
+    # 4. 去除停用词並套用 process_injectionword
+    if(process_injectionword_setup == True):
+        word_list = [process_injectionword(word) for word in word_list]
     else:
         word_list = [word for word in word_list]
 
