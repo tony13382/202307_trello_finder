@@ -405,8 +405,15 @@ def check_action_word(input_string, action_word_list):
             return True
     return False
 
-
+def check_is_done(input_string):
+    if "[已完成]" in input_string:
+        return True
+    else:
+        return False
+############################################################################################################################
 # webhook3.0 結果算法
+############################################################################################################################
+
 def get_article_index_list_precise(wordlist):
     precise_article_list = []
     for word in wordlist:
@@ -433,14 +440,14 @@ def get_article_index_list_precise(wordlist):
     return [{"article_id": article_id, "score": score} for article_id, score in sorted(article_scores.items(), key=lambda x: x[1], reverse=True)]
 
 
-def webhook_v2(user_input,card_id,checkIsTrello = False):
+def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
     
     # 定義需要留言的組件
-    trello_commit = []
     wc_string = ""
+    return_data = {}
 
     # 驗證文本是否包含動作關鍵字
-    if check_action_word(user_input, action_word_list):
+    if check_action_word(user_input, action_word_list) is True and check_is_done(user_input) is False:
         # 文本包含動作關鍵字
         # 開始清理文字
         if checkIsTrello is True:
@@ -448,46 +455,76 @@ def webhook_v2(user_input,card_id,checkIsTrello = False):
                 "name" : f"[進行中] {user_input}",
             })
         
-        print("開始清理文字")
-        sliced_word_list = process_words.process_sentence(user_input, process_injectionword_setup = False ).split() #只清洗文字
-        print(sliced_word_list)
-        print("開始精準搜尋")
 
-        # 開始精準搜尋
-        precise_result = get_article_index_list_precise(sliced_word_list)
+        #################################################################################
+        #################################################################################
+        
+        # 開始文本注入搜尋
+        print("開始文本注入搜尋")
+        comment_injected_msg = "**創意搜尋結果：**\n --- \n\n"
+        wc_string_injected = ""
 
-        comment_precise_msg = "**精準搜尋結果：** \n --- \n\n"
-        if len(precise_result) == 0:
-            # 精準搜尋沒有結果
-            comment_precise_msg += f"- 精準搜尋沒有結果 \n"
-            print("精準搜尋沒有結果")
+        # 開始注入
+        injected_sentence = process_words.process_sentence(user_input, process_injectionword_setup = True )
+        print(f"注入文本：{user_input} \n-> {injected_sentence}")
+        comment_injected_msg += f"{injected_sentence} \n---\n"
+        # 向量化注入文本
+        injected_vector = process_words.embedding_sentence(injected_sentence)
+        if injected_vector == False:
+            print("文本注入向量化失敗")
         else:
-            result = []
-            print(f"精準搜尋共 {len(precise_result)} 筆資料")
-            
-            if len(precise_result) > 20:
-                print("精準搜尋結果過多，僅顯示前 20 筆")
-                precise_result = precise_result[:20]
+            # 取得相關關鍵字列表 by Milvus
+            kwlist_by_m = vector_search.search_keyword_vector(injected_vector["value"])
 
-            counter = 0
-            for article_object in precise_result:
-                article_info = mongo_connector.find_article_info(str(article_object["article_id"]))
-                if article_info is not None and len(article_info) > 0:
-                    counter += 1
-                    comment_precise_msg += f"{counter}. [{article_info['title']}]({article_info['url']}) \n"
-                    result.append({
-                        "article_id" : article_object["article_id"],
-                        "score" : article_object["score"],
-                        "title" : article_info["title"],
-                        "url" : article_info["url"],
-                        "content" : article_info["content"],
-                    })
-                    wc_string += f'{article_info["content"]} '
-            precise_result_index = [x["article_id"] for x in precise_result]
+        if kwlist_by_m["state"] == False:
+            print("文本注入搜尋失敗")
+        else:
+            # 取得相關關鍵字編號
+            kwlist_index = [ x["track_id"] for x in kwlist_by_m["value"] ]
+            # 取得相關關鍵字文章列表
+            inject_alist = mongo_connector.get_alist_by_klist(kwlist_index)
+            inject_alist = [ x for x in inject_alist if x["total_score"] > 0.05 ]
             
-            trello_commit.append(comment_precise_msg)
-            #print(comment_precise_msg)
-            print("精準搜尋階段完成")
+            if len(inject_alist) > 0:
+                print(f"文本注入搜尋共 {len(inject_alist)} 筆資料")
+                if len(inject_alist) > 20:
+                    print("文本注入搜尋結果過多，僅顯示前 20 筆")
+                    inject_alist = inject_alist[:20]
+                # 內容輸出
+                counter = 0
+                for a_id in inject_alist:
+                    a_info = mongo_connector.find_article_info(a_id["_id"])
+                    if a_info is None:
+                        continue
+                    else:
+                        counter += 1
+                        comment_injected_msg  += f"{counter}. [{a_info['title']}]({a_info['url']}) \n"
+                        wc_string += f'{a_info["content"]} '
+                        wc_string_injected += f'{a_info["content"]} '
+            else:
+                comment_injected_msg += f"- 精準搜尋沒有結果 \n"
+                print("文本注入搜尋結果為空")
+        
+        return_data["injected"] = {
+            "msg" : comment_injected_msg,
+            "alist" : inject_alist,
+        }
+
+        if checkIsTrello is True:
+            # 輸出留言
+            trello_connector.addCommentToCard(
+                card_id, 
+                comment_injected_msg
+            )
+            # 產生文字雲
+            if len(inject_alist) > 0:
+                wc_img_path_injected = process_words.generate_wordcloud(wc_string_injected, f"創意搜尋文字雲")
+                if wc_img_path_injected["state"] is True:
+                    trello_connector.addFileToCard(
+                        card_id,
+                        wc_img_path_injected["value"]
+                    )
+
 
         #################################################################################
         #################################################################################
@@ -496,6 +533,7 @@ def webhook_v2(user_input,card_id,checkIsTrello = False):
         print("開始文章文本模糊搜索")
         
         fuzzy_search_alist = []
+        wc_string_fuzzy = ""
         comment_fuzzy_msg = "**相似搜尋結果：**\n --- \n\n"
         # 處理句子
         orginal_sentence = process_words.process_sentence(user_input, process_injectionword_setup = False ) #只清洗文字
@@ -547,74 +585,96 @@ def webhook_v2(user_input,card_id,checkIsTrello = False):
                     continue
                 else:
                     counter += 1
-                    comment_fuzzy_msg += f"{counter}. [{a_info['title']}]({a_info['url']}) \n"
-                    result.append({
-                        "article_id" : a_id,
-                        "title" : a_info["title"],
-                        "url" : a_info["url"],
-                        "content" : a_info["content"],
-                    })    
+                    comment_fuzzy_msg += f"{counter}. [{a_info['title']}]({a_info['url']}) \n" 
                     wc_string += f'{a_info["content"]} '
-            
+                    wc_string_fuzzy += f'{a_info["content"]} '
+        else:
+            comment_fuzzy_msg += f"相似文章搜尋沒有結果 \n"   
+            print("相似文章搜尋結果為空")
+
+        return_data["fuzzy"] = {
+            "msg" : comment_fuzzy_msg,
+            "alist" : fuzzy_search_alist,
+        }
+
+        if checkIsTrello is True:
+            # 輸出留言
+            trello_connector.addCommentToCard(
+                card_id, 
+                comment_fuzzy_msg
+            )
+            # 產生文字雲
+            if len(fuzzy_search_alist) > 0:
+                wc_img_path_fuzzy = process_words.generate_wordcloud(wc_string_fuzzy, f"相似搜尋文字雲")
+                if wc_img_path_fuzzy["state"] is True:
+                    trello_connector.addFileToCard(
+                        card_id,
+                        wc_img_path_fuzzy["value"]
+                    )
+        
         print("文章文本模糊搜索結束")
 
-        trello_commit.append(comment_fuzzy_msg)
-        
-            
+
         #################################################################################
         #################################################################################
-        
-        # 開始文本注入搜尋
-        print("開始文本注入搜尋")
-        comment_injected_msg = "**創意搜尋結果：**\n --- \n\n"
-        # 開始注入
-        injected_sentence = process_words.process_sentence(user_input, process_injectionword_setup = True )
-        print(f"注入文本：{user_input} \n-> {injected_sentence}")
-        comment_injected_msg += f"{injected_sentence} \n---\n"
-        # 向量化注入文本
-        injected_vector = process_words.embedding_sentence(injected_sentence)
-        if injected_vector == False:
-            print("文本注入向量化失敗")
-        else:
-            # 取得相關關鍵字列表 by Milvus
-            kwlist_by_m = vector_search.search_keyword_vector(injected_vector["value"])
 
-        if kwlist_by_m["state"] == False:
-            print("文本注入搜尋失敗")
+        print("開始清理文字")
+        sliced_word_list = process_words.process_sentence(user_input, process_injectionword_setup = False ).split() #只清洗文字
+        print(sliced_word_list)
+        print("開始精準搜尋")
+
+        wc_string_precise = ""
+
+        # 開始精準搜尋
+        precise_result = get_article_index_list_precise(sliced_word_list)
+
+        comment_precise_msg = "**精準搜尋結果：** \n --- \n\n"
+        if len(precise_result) == 0:
+            # 精準搜尋沒有結果
+            comment_precise_msg += f"精準搜尋沒有結果 \n"
+            print("精準搜尋沒有結果")
         else:
-            # 取得相關關鍵字編號
-            kwlist_index = [ x["track_id"] for x in kwlist_by_m["value"] ]
-            # 取得相關關鍵字文章列表
-            inject_alist = mongo_connector.get_alist_by_klist(kwlist_index)
-            inject_alist = [ x for x in inject_alist if x["total_score"] > 0.05 ]
             
-            if len(inject_alist) > 0:
-                print(f"文本注入搜尋共 {len(inject_alist)} 筆資料")
-                if len(inject_alist) > 20:
-                    print("文本注入搜尋結果過多，僅顯示前 20 筆")
-                    inject_alist = inject_alist[:20]
-                # 內容輸出
-                counter = 0
-                for a_id in inject_alist:
-                    a_info = mongo_connector.find_article_info(a_id["_id"])
-                    if a_info is None:
-                        continue
-                    else:
-                        counter += 1
-                        comment_injected_msg  += f"{counter}. [{a_info['title']}]({a_info['url']}) \n"
-                        result.append({
-                            "article_id" : a_id["_id"],
-                            "score" : a_id["total_score"],
-                            "title" : a_info["title"],
-                            "url" : a_info["url"],
-                            "content" : a_info["content"],
-                        })
-                        wc_string += f'{a_info["content"]} '
-            else:
-                comment_injected_msg += f"- 精準搜尋沒有結果 \n"
-                print("文本注入搜尋結果為空")
+            print(f"精準搜尋共 {len(precise_result)} 筆資料")
+            
+            if len(precise_result) > 20:
+                print("精準搜尋結果過多，僅顯示前 20 筆")
+                precise_result = precise_result[:20]
 
-        trello_commit.append(comment_injected_msg)
+            counter = 0
+            for article_object in precise_result:
+                article_info = mongo_connector.find_article_info(str(article_object["article_id"]))
+                if article_info is not None and len(article_info) > 0:
+                    counter += 1
+                    comment_precise_msg += f"{counter}. [{article_info['title']}]({article_info['url']}) \n"
+                    wc_string += f'{article_info["content"]} '
+                    wc_string_precise += f'{article_info["content"]} '
+            #precise_result_index = [x["article_id"] for x in precise_result]
+            
+            
+            #print(comment_precise_msg)
+        return_data["precise"] = {
+            "msg" : comment_precise_msg,
+            "alist" : precise_result,
+        }
+        
+        print("精準搜尋階段完成")
+
+        if checkIsTrello is True:
+            # 輸出留言
+            trello_connector.addCommentToCard(
+                card_id, 
+                comment_precise_msg
+            )
+            # 產生文字雲
+            if len(precise_result) > 0:
+                wc_img_path = process_words.generate_wordcloud(wc_string_precise, f"精準搜尋文字雲")
+                if wc_img_path["state"] is True:
+                    trello_connector.addFileToCard(
+                        card_id,
+                        wc_img_path["value"]
+                    )
+
 
         #################################################################################
         #################################################################################
@@ -622,19 +682,20 @@ def webhook_v2(user_input,card_id,checkIsTrello = False):
 
         if checkIsTrello is True:
             # 產生文字雲
-            wc_img_path = process_words.generate_wordcloud(wc_string, f"{card_id}_綜合文字雲.png")
+            wc_img_path = process_words.generate_wordcloud(wc_string, f"綜合文字雲")
             if(wc_img_path["state"]):
                 # 更新封面
                 print("WordCloud 圖片產生成功")
                 trello_connector.addCoverToCard(card_id,wc_img_path["value"])
 
-            for commit_msg in reversed(trello_commit):
-                trello_connector.addCommentToCard(card_id, commit_msg)
 
             trello_connector.updateDataToCard(card_id, {
                 "name" : f"[已完成] {user_input}",
             })
+
         print("搜索結束")
+
+        return return_data
 
 
 ####################################################################
@@ -788,7 +849,7 @@ def article_get():
         })
 
 
-@app.route('/webhook',methods=['POST','HEAD','GET'])
+@app.route('/webhook2',methods=['POST','HEAD','GET'])
 def webhook_post():
     if request.method == 'POST':
         try:
@@ -861,8 +922,8 @@ def webhook_post():
 
     return ("", 200)
 
-@app.route('/webhook_v2',methods=['POST','HEAD','GET'])
-def webhook_v2_post():
+@app.route('/webhook3',methods=['POST','HEAD','GET'])
+def webhook_v3_post():
     if request.method == 'POST':
         try:
             # Get Request Data
@@ -896,7 +957,21 @@ def webhook_v2_post():
                     
                     # 檢查是否包含動作關鍵字
                     if(check_action_word(user_input,action_word_list)):
-                        webhook_v2(user_input,card_id,check_trello_action)
+                        try:
+                            run = webhook_v3_engine(user_input,card_id,check_trello_action)
+                            mongo_connector.add_trello_log(
+                                card_id = card_id, 
+                                state = True, 
+                                msg = "留言成功", 
+                                more_info=run
+                            )
+                        except Exception as exp:
+                            mongo_connector.add_trello_log(
+                                card_id = card_id, 
+                                state = False, 
+                                msg= "v3_engine Error" + "\n\n" + str(exp)
+                            )
+
                     else:
                         print("不包含動作關鍵字: ",user_input)
             except Exception as exp:
