@@ -31,6 +31,7 @@ print('stop_word_list loaded')
 
 # Import modules of wordCloud
 import matplotlib.pyplot as plt
+plt.switch_backend('Agg')
 from wordcloud import WordCloud
 
 
@@ -133,7 +134,8 @@ print("Load Chinese font Done")
 def generate_wordcloud(input_string, filename="0_wordcloud"):
     try:
         # Process the input string
-        words = monpa.cut(input_string)
+        ##words = monpa.cut(input_string)
+        words = input_string.split(" ")
         wc_string = " ".join(w for w in words if w not in stopwords)
         
         # Generate a word cloud image
@@ -147,7 +149,7 @@ def generate_wordcloud(input_string, filename="0_wordcloud"):
             colormap="Set2",
             stopwords=stopwords,  # Pass the loaded stop words
         ).generate(wc_string)
-        plt.switch_backend('Agg')
+        plt.rcParams["figure.figsize"] = [9, 6]
         plt.imshow(wordcloud, interpolation="bilinear")
         plt.axis("off")
         save_path = f"static/images/wordCloud/{filename}.png"

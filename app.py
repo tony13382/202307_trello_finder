@@ -499,8 +499,8 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                     else:
                         counter += 1
                         comment_injected_msg  += f"{counter}. [{a_info['title']}]({a_info['url']}) \n"
-                        wc_string += f'{a_info["content"]} '
-                        wc_string_injected += f'{a_info["content"]} '
+                        wc_string += f'{a_info["cuted"]} '
+                        wc_string_injected += f'{a_info["cuted"]} '
             else:
                 comment_injected_msg += f"- 精準搜尋沒有結果 \n"
                 print("文本注入搜尋結果為空")
@@ -586,8 +586,8 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 else:
                     counter += 1
                     comment_fuzzy_msg += f"{counter}. [{a_info['title']}]({a_info['url']}) \n" 
-                    wc_string += f'{a_info["content"]} '
-                    wc_string_fuzzy += f'{a_info["content"]} '
+                    wc_string += f'{a_info["cuted"]} '
+                    wc_string_fuzzy += f'{a_info["cuted"]} '
         else:
             comment_fuzzy_msg += f"相似文章搜尋沒有結果 \n"   
             print("相似文章搜尋結果為空")
@@ -647,12 +647,9 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 if article_info is not None and len(article_info) > 0:
                     counter += 1
                     comment_precise_msg += f"{counter}. [{article_info['title']}]({article_info['url']}) \n"
-                    wc_string += f'{article_info["content"]} '
-                    wc_string_precise += f'{article_info["content"]} '
-            #precise_result_index = [x["article_id"] for x in precise_result]
+                    wc_string += f'{article_info["cuted"]} '
+                    wc_string_precise += f'{article_info["cuted"]} '
             
-            
-            #print(comment_precise_msg)
         return_data["precise"] = {
             "msg" : comment_precise_msg,
             "alist" : precise_result,
@@ -684,10 +681,13 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
             # 產生文字雲
             wc_img_path = process_words.generate_wordcloud(wc_string, f"綜合文字雲")
             if(wc_img_path["state"]):
+                trello_connector.addCommentToCard(
+                    card_id, 
+                    "---"
+                )
                 # 更新封面
                 print("WordCloud 圖片產生成功")
                 trello_connector.addCoverToCard(card_id,wc_img_path["value"])
-
 
             trello_connector.updateDataToCard(card_id, {
                 "name" : f"[已完成] {user_input}",
@@ -965,13 +965,14 @@ def webhook_v3_post():
                                 msg = "留言成功", 
                                 more_info=run
                             )
+                            return ("", 200)
                         except Exception as exp:
                             mongo_connector.add_trello_log(
                                 card_id = card_id, 
                                 state = False, 
                                 msg= "v3_engine Error" + "\n\n" + str(exp)
                             )
-
+                            return ("", 200)
                     else:
                         print("不包含動作關鍵字: ",user_input)
             except Exception as exp:
