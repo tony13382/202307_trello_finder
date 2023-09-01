@@ -9,6 +9,12 @@ from flask import request
 # 用於隨機抽取回應（無答案時）
 import random
 
+# 用於貯列
+import pika
+import json
+
+import threading
+
 ####################################################################
 # Setup environment value
 ####################################################################
@@ -26,6 +32,11 @@ anthropic_setup = os.getenv("anthropic_setup") in ["True", "true", "1"]
 openai_setup = os.getenv("openai_setup") in ["True", "true", "1"]
 roBERTa_setup = os.getenv("roBERTa_setup") in ["True", "true", "1"]
 bert_setup = os.getenv("bert_setup") in ["True", "true", "1"]
+
+rabbitmq_host = os.getenv("rabbitmq_host")
+rabbitmq_port = os.getenv("rabbitmq_port")
+rabbitmq_username = os.getenv("rabbitmq_username")
+rabbitmq_password = os.getenv("rabbitmq_password")
 
 
 # 讀取文字檔並轉換成串列
@@ -70,7 +81,8 @@ from modules.tools.trello_connector import updateDataToCard, addCommentToCard, a
 import modules.tools.trello_connector as trello_connector
 # Vector 計算模組
 import modules.tools.vector_calc as vector_calculation
-
+# RabbitMQ 模組
+#import modules.tools.rabbitmq_connector as rabbitmq_connector
 
 
 # 預處理 Milvus 回傳的資料
@@ -410,6 +422,8 @@ def check_is_done(input_string):
         return True
     else:
         return False
+
+
 ############################################################################################################################
 # webhook3.0 結果算法
 ############################################################################################################################
@@ -440,12 +454,27 @@ def get_article_index_list_precise(wordlist):
     return [{"article_id": article_id, "score": score} for article_id, score in sorted(article_scores.items(), key=lambda x: x[1], reverse=True)]
 
 
+def send_message_to_queue(data_json):
+    # 连接到RabbitMQ服务器
+    credentials = pika.PlainCredentials(rabbitmq_username, rabbitmq_password)
+    parameters = pika.ConnectionParameters(rabbitmq_host, rabbitmq_port, '/', credentials)
+    connection = pika.BlockingConnection(parameters)
+    channel = connection.channel()
+    #  建立隊列
+    channel.queue_declare(queue='img_queue')
+    channel.basic_publish(exchange='', routing_key='img_queue', body=data_json)
+    connection.close()
+
 def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
     
     # 定義需要留言的組件
     wc_string = ""
     return_data = {}
+    isNoneResult = True
 
+    return_data["user_input"] = user_input
+    return_data["card_id"] = card_id
+    
     # 驗證文本是否包含動作關鍵字
     if check_action_word(user_input, action_word_list) is True and check_is_done(user_input) is False:
         # 文本包含動作關鍵字
@@ -486,6 +515,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
             inject_alist = [ x for x in inject_alist if x["total_score"] > 0.05 ]
             
             if len(inject_alist) > 0:
+                isNoneResult = False
                 print(f"文本注入搜尋共 {len(inject_alist)} 筆資料")
                 if len(inject_alist) > 20:
                     print("文本注入搜尋結果過多，僅顯示前 20 筆")
@@ -502,7 +532,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                         wc_string += f'{a_info["cuted"]} '
                         wc_string_injected += f'{a_info["cuted"]} '
             else:
-                comment_injected_msg += f"- 精準搜尋沒有結果 \n"
+                comment_injected_msg += f"- 創意搜尋沒有結果 \n"
                 print("文本注入搜尋結果為空")
         
         return_data["injected"] = {
@@ -517,6 +547,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 comment_injected_msg
             )
             # 產生文字雲
+            """
             if len(inject_alist) > 0:
                 wc_img_path_injected = process_words.generate_wordcloud(wc_string_injected, f"創意搜尋文字雲")
                 if wc_img_path_injected["state"] is True:
@@ -524,6 +555,8 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                         card_id,
                         wc_img_path_injected["value"]
                     )
+            """
+        print("文本注入搜索結束")
 
 
         #################################################################################
@@ -573,6 +606,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
             fuzzy_search_alist = [ x["id"] for x in fuzzy_search_result["value"] if x["distance"] > 2.75 ]
             
         if len(fuzzy_search_alist) > 0:
+            isNoneResult = False
             print(f"相似文章搜尋共 {len(fuzzy_search_alist)} 筆資料")  
             if len(fuzzy_search_alist) > 20:
                 print("相似文章搜尋結果過多，僅顯示前 20 筆")
@@ -604,13 +638,29 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 comment_fuzzy_msg
             )
             # 產生文字雲
+            """
             if len(fuzzy_search_alist) > 0:
                 wc_img_path_fuzzy = process_words.generate_wordcloud(wc_string_fuzzy, f"相似搜尋文字雲")
                 if wc_img_path_fuzzy["state"] is True:
+                    
                     trello_connector.addFileToCard(
                         card_id,
                         wc_img_path_fuzzy["value"]
                     )
+                    
+                    # 发送消息
+                    try:
+                        data_json = json.dumps({"mode": "sendPic", "card_id": card_id, "img_path": wc_img_path["value"], })
+                        data_json = json.dumps(data_dict)
+                        # 在后台线程中发送消息，不会阻塞Flask主线程
+                        thread = threading.Thread(target=send_message_to_queue, args=(data_json,))
+                        thread.start()
+                    except Exception as e:
+                        print("发送消息失败：", e)
+                    #rabbitmq_connector.send_message()
+                    
+                    print("文字雲圖片產生成功")
+            """
         
         print("文章文本模糊搜索結束")
 
@@ -629,12 +679,8 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
         precise_result = get_article_index_list_precise(sliced_word_list)
 
         comment_precise_msg = "**精準搜尋結果：** \n --- \n\n"
-        if len(precise_result) == 0:
-            # 精準搜尋沒有結果
-            comment_precise_msg += f"精準搜尋沒有結果 \n"
-            print("精準搜尋沒有結果")
-        else:
-            
+        if len(precise_result) > 0:
+            isNoneResult = False
             print(f"精準搜尋共 {len(precise_result)} 筆資料")
             
             if len(precise_result) > 20:
@@ -649,6 +695,10 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                     comment_precise_msg += f"{counter}. [{article_info['title']}]({article_info['url']}) \n"
                     wc_string += f'{article_info["cuted"]} '
                     wc_string_precise += f'{article_info["cuted"]} '
+        else:
+            # 精準搜尋沒有結果
+            comment_precise_msg += f"精準搜尋沒有結果 \n"
+            print("精準搜尋沒有結果")
             
         return_data["precise"] = {
             "msg" : comment_precise_msg,
@@ -664,13 +714,19 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 comment_precise_msg
             )
             # 產生文字雲
+            """
             if len(precise_result) > 0:
                 wc_img_path = process_words.generate_wordcloud(wc_string_precise, f"精準搜尋文字雲")
                 if wc_img_path["state"] is True:
+                    #rabbitmq_connector.send_message({"mode": "sendPic", "card_id": card_id, "img_path": wc_img_path["value"], })
+                    
                     trello_connector.addFileToCard(
                         card_id,
                         wc_img_path["value"]
                     )
+                    
+                    print("文字雲圖片產生成功")
+            """
 
 
         #################################################################################
@@ -678,16 +734,36 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
 
 
         if checkIsTrello is True:
-            # 產生文字雲
-            wc_img_path = process_words.generate_wordcloud(wc_string, f"綜合文字雲")
-            if(wc_img_path["state"]):
+            if isNoneResult is True:
+                #rabbitmq_connector.send_message({"mode": "sendCover", "card_id": card_id, "img_path": "./static/images/not_found.png",})
+                
+                
                 trello_connector.addCommentToCard(
                     card_id, 
-                    "---"
+                    f"{random.choice(not_found_msg_list)}\n\n---"
                 )
-                # 更新封面
-                print("WordCloud 圖片產生成功")
-                trello_connector.addCoverToCard(card_id,wc_img_path["value"])
+
+                trello_connector.addCoverToCard(
+                        card_id,
+                        "./static/images/not_found.png"
+                    )
+
+            else:
+                # 產生文字雲
+                wc_img_path = process_words.generate_wordcloud(wc_string, f"綜合文字雲")
+                if(wc_img_path["state"]):
+                    trello_connector.addCommentToCard(
+                        card_id, 
+                        "---"
+                    )
+                    # 更新封面
+                    print("WordCloud 圖片產生成功")
+                    trello_connector.addCoverToCard(
+                        card_id,
+                        wc_img_path["value"]
+                    )
+                    #rabbitmq_connector.send_message({ "mode": "sendCover", "card_id": card_id, "img_path": wc_img_path["value"],})
+                    
 
             trello_connector.updateDataToCard(card_id, {
                 "name" : f"[已完成] {user_input}",

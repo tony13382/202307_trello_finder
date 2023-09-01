@@ -113,7 +113,7 @@ def addCoverToCard(card_id,img_path):
     url = f"https://api.trello.com/1/cards/{card_id}/idAttachmentCover"
     params = {"key": api_key, "token": api_token, "value": attachment_id}
     response = requests.put(url, params=params)
-    print(response.json())
+    #print(response.json())
 
     print("+----------------------------+")
     print("封面設置成功")
