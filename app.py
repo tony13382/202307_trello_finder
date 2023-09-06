@@ -535,7 +535,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 comment_injected_msg += f"- 創意搜尋沒有結果 \n"
                 print("文本注入搜尋結果為空")
         
-        return_data["injected"] = {
+        return_data["1_injected"] = {
             "msg" : comment_injected_msg,
             "alist" : inject_alist,
         }
@@ -626,9 +626,10 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
             comment_fuzzy_msg += f"相似文章搜尋沒有結果 \n"   
             print("相似文章搜尋結果為空")
 
-        return_data["fuzzy"] = {
+        return_data["2_fuzzy"] = {
             "msg" : comment_fuzzy_msg,
             "alist" : fuzzy_search_alist,
+            "vector_result" : fuzzy_search_result,
         }
 
         if checkIsTrello is True:
@@ -700,7 +701,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
             comment_precise_msg += f"精準搜尋沒有結果 \n"
             print("精準搜尋沒有結果")
             
-        return_data["precise"] = {
+        return_data["3_precise"] = {
             "msg" : comment_precise_msg,
             "alist" : precise_result,
         }
@@ -737,7 +738,6 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
             if isNoneResult is True:
                 #rabbitmq_connector.send_message({"mode": "sendCover", "card_id": card_id, "img_path": "./static/images/not_found.png",})
                 
-                
                 trello_connector.addCommentToCard(
                     card_id, 
                     f"{random.choice(not_found_msg_list)}\n\n---"
@@ -752,6 +752,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 # 產生文字雲
                 wc_img_path = process_words.generate_wordcloud(wc_string, f"綜合文字雲")
                 if(wc_img_path["state"]):
+                    # 印刷分隔線
                     trello_connector.addCommentToCard(
                         card_id, 
                         "---"
@@ -763,14 +764,15 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                         wc_img_path["value"]
                     )
                     #rabbitmq_connector.send_message({ "mode": "sendCover", "card_id": card_id, "img_path": wc_img_path["value"],})
-                    
 
             trello_connector.updateDataToCard(card_id, {
                 "name" : f"[已完成] {user_input}",
             })
 
         print("搜索結束")
-
+        print("=====================================")
+        #print(return_data)
+        print("=====================================")
         return return_data
 
 
@@ -1034,12 +1036,12 @@ def webhook_v3_post():
                     # 檢查是否包含動作關鍵字
                     if(check_action_word(user_input,action_word_list)):
                         try:
-                            run = webhook_v3_engine(user_input,card_id,check_trello_action)
+                            result_of_search = webhook_v3_engine(user_input,card_id,check_trello_action)
                             mongo_connector.add_trello_log(
                                 card_id = card_id, 
                                 state = True, 
                                 msg = "留言成功", 
-                                more_info=run
+                                more_info=result_of_search
                             )
                             return ("", 200)
                         except Exception as exp:
