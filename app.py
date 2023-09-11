@@ -490,7 +490,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
         
         # 開始文本注入搜尋
         print("開始文本注入搜尋")
-        comment_injected_msg = "**創意搜尋結果：**\n --- \n\n"
+        comment_injected_msg = "\n**你可能也喜歡：**\n --- \n\n"
         wc_string_injected = ""
 
         # 開始注入
@@ -567,7 +567,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
         
         fuzzy_search_alist = []
         wc_string_fuzzy = ""
-        comment_fuzzy_msg = "**相似搜尋結果：**\n --- \n\n"
+        comment_fuzzy_msg = "\n**相關推薦：**\n --- \n\n"
         # 處理句子
         orginal_sentence = process_words.process_sentence(user_input, process_injectionword_setup = False ) #只清洗文字
         injected_sentence = process_words.process_sentence(user_input) #清洗文字並且進行相似詞搜尋
@@ -679,13 +679,13 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
         # 開始精準搜尋
         precise_result = get_article_index_list_precise(sliced_word_list)
 
-        comment_precise_msg = "**精準搜尋結果：** \n --- \n\n"
+        comment_precise_msg = "\n**優先推薦：** \n --- \n\n"
         if len(precise_result) > 0:
             isNoneResult = False
             print(f"精準搜尋共 {len(precise_result)} 筆資料")
             
             if len(precise_result) > 20:
-                print("精準搜尋結果過多，僅顯示前 20 筆")
+                print("優先推薦過多，僅顯示前 20 筆")
                 precise_result = precise_result[:20]
 
             counter = 0
@@ -740,7 +740,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 
                 trello_connector.addCommentToCard(
                     card_id, 
-                    f"{random.choice(not_found_msg_list)}\n\n---"
+                    f" \n{random.choice(not_found_msg_list)}\n\n---"
                 )
 
                 trello_connector.addCoverToCard(
@@ -1037,12 +1037,25 @@ def webhook_v3_post():
                     if(check_action_word(user_input,action_word_list)):
                         try:
                             result_of_search = webhook_v3_engine(user_input,card_id,check_trello_action)
+                            result_of_search["trello_data"] = req
                             mongo_connector.add_trello_log(
                                 card_id = card_id, 
                                 state = True, 
                                 msg = "留言成功", 
                                 more_info=result_of_search
                             )
+                            if check_trello_action is True:
+                                try:
+                                    card_link = f"https://trello.com/c/{req['action']['data']['card']['shortLink']}"
+                                    creator_id = req["action"]["display"]["entities"]["memberCreator"]["id"]
+                                    creator_name = req["action"]["display"]["entities"]["memberCreator"]["text"]
+                                    print(card_id,":",card_link,"by", creator_id,"[", creator_name,"]")
+                                    # Save to MySQL
+                                    
+                                except Exception as exp:
+                                    print("\033[91m Save to MySQL Error. \033[00m")
+                                    print(exp)
+                                    print("=====================================")
                             return ("", 200)
                         except Exception as exp:
                             mongo_connector.add_trello_log(
