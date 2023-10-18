@@ -7,9 +7,11 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 mongodb_path = os.getenv("mongodb_path")
+mongodb_username = os.getenv("mongodb_username")  # 替換為你的用戶名
+mongodb_password = os.getenv("mongodb_password")  # 替換為你的密碼
 
 # 建立 MongoDB 連線
-client = MongoClient(mongodb_path)
+client = MongoClient(mongodb_path, username=mongodb_username, password=mongodb_password)
 db = client.nthu_trello_helper
 mongo_article_collection = db.article
 mongo_trello_log_collection = db.trello_log
@@ -189,6 +191,10 @@ def get_alist_by_klist(keyword_list):
 # msg : String (Log Message)
 # time : String (Log Time %Y-%m-%d %H:%M:%S ) 2023-07-25 12:53:41 [可選]
 ####################
+<<<<<<< HEAD
+=======
+
+>>>>>>> aa9c9067f5a4c398b0b4018c563ab76729080aee
 def add_trello_log(card_id, state, msg, time="",more_info=""):
     # 設定時間
     if(len(time) < 1):
