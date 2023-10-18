@@ -1,7 +1,7 @@
 # Import modules of MongoDB
 from pymongo import MongoClient
 # Import modules of datetime(For Log)
-from datetime import datetime
+from datetime import datetime,timezone,timedelta
 # Setup environment value
 import os
 from dotenv import load_dotenv
@@ -189,8 +189,13 @@ def get_alist_by_klist(keyword_list):
 # msg : String (Log Message)
 # time : String (Log Time %Y-%m-%d %H:%M:%S ) 2023-07-25 12:53:41 [可選]
 ####################
-
-def add_trello_log(card_id, state, msg, time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),more_info=""):
+def add_trello_log(card_id, state, msg, time="",more_info=""):
+    # 設定時間
+    if(len(time) < 1):
+        dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
+        dt2 = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
+        time = dt2.strftime("%Y-%m-%d %H:%M:%S") # 將時間轉換為 string
+        #print(realtime) 
     # 插入 MongoDB
     mongo_trello_log_collection.insert_one({
         "datetime" : time,
