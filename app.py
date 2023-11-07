@@ -415,6 +415,8 @@ def check_action_word(input_string, action_word_list):
     for action_word in action_word_list:
         if action_word in input_string:
             return True
+    if input_string[-1] == "?" or input_string[-1] == "？":
+        return True
     return False
 
 def check_is_done(input_string):
@@ -422,6 +424,7 @@ def check_is_done(input_string):
         return True
     else:
         return False
+
 
 
 ############################################################################################################################
@@ -507,6 +510,10 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
 
         if kwlist_by_m["state"] == False:
             print("文本注入搜尋失敗")
+            return_data["1_injected"] = {
+                "msg" : comment_injected_msg,
+                "alist" : ["文本注入搜尋失敗"],
+            }
         else:
             # 取得相關關鍵字編號
             kwlist_index = [ x["track_id"] for x in kwlist_by_m["value"] ]
@@ -532,13 +539,15 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                         wc_string += f'{a_info["cuted"]} '
                         wc_string_injected += f'{a_info["cuted"]} '
             else:
-                comment_injected_msg += f"- 創意搜尋沒有結果 \n"
+                comment_injected_msg += f"- 創意搜尋沒有結果 \n {random.choice(not_found_msg_list)} \n"
+                # Not Find Data so return random message
+
                 print("文本注入搜尋結果為空")
         
-        return_data["1_injected"] = {
-            "msg" : comment_injected_msg,
-            "alist" : inject_alist,
-        }
+            return_data["1_injected"] = {
+                "msg" : comment_injected_msg,
+                "alist" : inject_alist,
+            }
 
         if checkIsTrello is True:
             # 輸出留言
@@ -546,16 +555,6 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                 card_id, 
                 comment_injected_msg
             )
-            # 產生文字雲
-            """
-            if len(inject_alist) > 0:
-                wc_img_path_injected = process_words.generate_wordcloud(wc_string_injected, f"創意搜尋文字雲")
-                if wc_img_path_injected["state"] is True:
-                    trello_connector.addFileToCard(
-                        card_id,
-                        wc_img_path_injected["value"]
-                    )
-            """
         print("文本注入搜索結束")
 
 
@@ -623,7 +622,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                     wc_string += f'{a_info["cuted"]} '
                     wc_string_fuzzy += f'{a_info["cuted"]} '
         else:
-            comment_fuzzy_msg += f"相似文章搜尋沒有結果 \n"   
+            comment_fuzzy_msg += f"相似文章搜尋沒有結果 \n {random.choice(not_found_msg_list)} \n"   
             print("相似文章搜尋結果為空")
 
         return_data["2_fuzzy"] = {
@@ -698,7 +697,7 @@ def webhook_v3_engine(user_input,card_id,checkIsTrello = False):
                     wc_string_precise += f'{article_info["cuted"]} '
         else:
             # 精準搜尋沒有結果
-            comment_precise_msg += f"精準搜尋沒有結果 \n"
+            comment_precise_msg += f"精準搜尋沒有結果 \n {random.choice(not_found_msg_list)} \n"
             print("精準搜尋沒有結果")
             
         return_data["3_precise"] = {
@@ -1009,6 +1008,8 @@ def webhook_v3_post():
             try:
                 run_system = False
                 # Define to Check Trello Action
+
+                
                 
                 if  "action" in req.keys():
                     if  "type" in req["action"].keys():
@@ -1033,6 +1034,11 @@ def webhook_v3_post():
                         user_input = req["user_input"]
                         card_id = req["card_id"]
                     
+                    if mongo_connector.check_has_record(card_id):
+                        print("重複呼叫 停止執行")
+                        print("====================")
+                        return ("", 200)
+
                     # 檢查是否包含動作關鍵字
                     if(check_action_word(user_input,action_word_list)):
                         try:
@@ -1061,7 +1067,10 @@ def webhook_v3_post():
                             mongo_connector.add_trello_log(
                                 card_id = card_id, 
                                 state = False, 
-                                msg= "v3_engine Error" + "\n\n" + str(exp)
+                                msg = "v3_engine Error" + "\n\n" + str(exp),
+                                more_info = {
+                                    "trello_data" :  req
+                                }
                             )
                             return ("", 200)
                     else:
@@ -1074,13 +1083,6 @@ def webhook_v3_post():
 
     return ("", 200)
 
-# Image API(For Trello to Get Image File)
-@app.route('/imgs/<filename>')
-def serve_image(filename):
-    # 構建圖片檔案的路徑
-    image_path = f'static/{filename}'
-    # 將用戶導向圖片檔案
-    return redirect(image_path)
 
 if __name__ == '__main__':
     # Set Debug Mode （每次儲存自動刷新，正式上線需要關閉）

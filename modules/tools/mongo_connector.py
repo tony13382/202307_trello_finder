@@ -162,7 +162,6 @@ def get_other_keyword_by_alist(article_list):
     ]
 
     return list(mongo_keyword_record_collection.aggregate(pipeline))
-    
 
 
 def get_alist_by_klist(keyword_list):
@@ -177,11 +176,21 @@ def get_alist_by_klist(keyword_list):
     ]
     return list(mongo_keyword_record_collection.aggregate(pipeline))
 
+
+def check_has_record(card_id_to_check):
+    try:
+        matching_record = mongo_trello_log_collection.find_one({"card_id": card_id_to_check, "state": True})
+        if matching_record:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+
 ####################################################################
 # Insert Data To MongoDB
 ####################################################################
-
-
 
 ####################
 ## 新增 Trello Log （紀錄）
@@ -207,3 +216,21 @@ def add_trello_log(card_id, state, msg, time="",more_info=""):
         "msg" : msg,
         "more_info" : more_info,
     })
+
+    # 備份資料點
+    try:
+        print("同步備份")
+        backupClient = MongoClient("mongodb://100.90.12.119:27017/")
+        backup_log_collection = backupClient.nthu_trello_helper.trello_log
+        # 插入 MongoDB
+        backup_log_collection.insert_one({
+            "datetime" : time,
+            "card_id" : card_id,
+            "state" : state,
+            "msg" : msg,
+            "more_info" : more_info,
+        })
+        print("同步備份完成")
+    except:
+        print("mongo remote server has connect error.")
+        print("please check tail vpn")
