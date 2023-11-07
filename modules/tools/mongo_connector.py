@@ -200,7 +200,10 @@ def check_has_record(card_id_to_check):
 # msg : String (Log Message)
 # time : String (Log Time %Y-%m-%d %H:%M:%S ) 2023-07-25 12:53:41 [可選]
 ####################
+<<<<<<< HEAD
+=======
 
+>>>>>>> aa9c9067f5a4c398b0b4018c563ab76729080aee
 def add_trello_log(card_id, state, msg, time="",more_info=""):
     # 設定時間
     if(len(time) < 1):

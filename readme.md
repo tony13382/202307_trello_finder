@@ -13,6 +13,8 @@
 | [action_word_list.txt](./setting/action_word_list.txt) | 相依於 [app.py](./app.py) | Trello 啟動詞設定 |
 | [not_found_msg_list.txt](./setting/not_found_msg_list.txt) | 相依於 [app.py](./app.py) | 無資料罐頭訊息設定 |
 | [vector_all.json](./docs/backup/vector_all.json) |  df 備份檔案、相依於 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 包含所有文本向量化的 dataframe |
+| [Post.ipynb- colab](https://colab.research.google.com/drive/1LX8n4HB-GEFX9aWn60nsdrU9yUvvqNmd?usp=drive_link) | 部署用筆記本文件 | 須申請權限 |
+| [Trello Helper 部署清單](https://docs.google.com/spreadsheets/d/1aijNun9tFA1iyUcvc5q8sN-xQnVlfSumsZDI_oDR_Kg/edit?usp=drive_link) | 部署清單，包含 board id, webhook id | 須申請權限 |
 
 ### 備用資料
 | 文檔名稱 | 用途 | 備註 |
