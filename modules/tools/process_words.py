@@ -25,6 +25,7 @@ def txt_to_list(file_path):
         return []
 
 
+
 # 指定文字檔路徑
 stop_word_list = txt_to_list("./setting/stopwords_chinese.txt")
 print('stop_word_list loaded')
@@ -87,9 +88,10 @@ def process_sentence(sentence, process_injectionword_setup=True):
     # 2. 去除停用词
     # 停用词表 ＃為基礎少數通用詞彙 ＃速度慢
     
-    stop_word_list = ["的原理", "常數", "係數", "定律"]
-    stop_word_list.extend(action_word_list)
-    for stop_word in stop_word_list:
+    stop_word_list_in_process = ["的原理", "常數", "係數", "定律"]
+    stop_word_list_in_process.extend(stop_word_list)
+    stop_word_list_in_process.extend(action_word_list)
+    for stop_word in stop_word_list_in_process:
         sentence = sentence.replace(stop_word, "")
     
     # 3. 将句子切割成词

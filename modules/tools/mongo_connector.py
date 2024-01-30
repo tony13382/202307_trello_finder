@@ -47,7 +47,7 @@ def find_keyrecord_by_kw(key_id, limit=100):
     # 搜尋包含該關鍵字 ID 之文章
     query = {"keyword_id": key_id}
     # 搜尋符合條件的文件並依據分數排序（降冪）
-    result = mongo_keyword_record_collection.find(query).sort("score", -1).limit(limit)
+    result = mongo_keyword_record_collection.find(query).sort("tf_value", -1).limit(limit)
     result_array = []
     for document in result:
         result_array.append(document)
@@ -57,7 +57,7 @@ def find_keyrecord_by_aid(article_id, limit=1000):
     # 搜尋包含該關鍵字 ID 之文章
     query = {'article_id': article_id}
     # 搜尋符合條件的文件
-    result = mongo_keyword_record_collection.find(query).sort("score", -1).limit(limit)
+    result = mongo_keyword_record_collection.find(query).sort("tf_value", -1).limit(limit)
     result_array = []
     for document in result:
         result_array.append(document)
@@ -156,9 +156,9 @@ def get_other_keyword_by_alist(article_list):
         {"$match": {"article_id": {"$in": article_list}}},
         {"$group": {
             "_id": "$keyword_id",
-            "total_score": {"$sum": "$score"}
+            "total_tf_value": {"$sum": "$tf_value"}
         }},
-        {"$sort": {"total_score": -1}}
+        {"$sort": {"total_tf_value": -1}}
     ]
 
     return list(mongo_keyword_record_collection.aggregate(pipeline))
@@ -170,9 +170,9 @@ def get_alist_by_klist(keyword_list):
         {"$match": {"keyword_id": {"$in": keyword_list}}},
         {"$group": {
             "_id": "$article_id",
-            "total_score": {"$sum": "$score"}
+            "total_tf_value": {"$sum": "$tf_value"}
         }},
-        {"$sort": {"total_score": -1}}
+        {"$sort": {"total_tf_value": -1}}
     ]
     return list(mongo_keyword_record_collection.aggregate(pipeline))
 

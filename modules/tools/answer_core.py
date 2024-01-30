@@ -104,7 +104,7 @@ def qa_by_bert(source_content,question):
         result = bert_nlp(bert_QA_input)
         return {
             "state": True,
-            "value": f"{result['answer']} [{result['score']}]",
+            "value": f"{result['answer']} [{result['tf_value']}]",
         }
     except Exception as exp:
         return {
