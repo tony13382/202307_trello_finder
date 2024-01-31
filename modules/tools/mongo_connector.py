@@ -7,11 +7,14 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 mongodb_path = os.getenv("mongodb_path")
+#print("mongodb_path: ",mongodb_path)
+mongodb_path = "mongodb://100.90.12.119:27017/?retryWrites=true&serverSelectionTimeoutMS=5000&connectTimeoutMS=10000"
 mongodb_username = os.getenv("mongodb_username")  # 替換為你的用戶名
 mongodb_password = os.getenv("mongodb_password")  # 替換為你的密碼
 
 # 建立 MongoDB 連線
-client = MongoClient(mongodb_path, username=mongodb_username, password=mongodb_password)
+#client = MongoClient(mongodb_path, username=mongodb_username, password=mongodb_password)
+client = MongoClient(mongodb_path)
 db = client.nthu_trello_helper
 mongo_article_collection = db.article
 mongo_trello_log_collection = db.trello_log

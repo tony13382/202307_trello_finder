@@ -5,6 +5,10 @@ import modules.tools.vector_search as vector_search
 import modules.tools.vector_calc as vector_calculation
 import random
 
+# 啟動詞與無資料罐頭訊息載入完成！
+import modules.tools.process_words as read_txt_to_list
+action_word_list = read_txt_to_list.txt_to_list("./setting/action_word_list.txt")
+
 #############################################
 # 關鍵設定數值
 Total_tf_value_Gap = 0.01 #文章分數門檻
@@ -22,7 +26,12 @@ not_found_msg_list = process_words.txt_to_list("./setting/not_found_msg_list.txt
 
 def tf(user_input,except_article_ids = []):
     print("開始清理文字")
-    sliced_word_list = process_words.process_sentence(user_input, process_injectionword_setup = False ).split() #只清洗文字
+    query_string = user_input
+    #Remove input_string in action_word_list
+    for action_word in action_word_list:
+        if action_word in query_string:
+            query_string = query_string.replace(action_word, "")
+    sliced_word_list = process_words.process_sentence(query_string, process_injectionword_setup = False ).split() #只清洗文字
     print(sliced_word_list)
     
     print("開始精準搜尋")
@@ -65,7 +74,7 @@ def tf(user_input,except_article_ids = []):
             a_info = mongo_connector.find_article_info(str(article_object["article_id"]))
             if a_info is not None and len(a_info) > 0:
                 counter += 1
-                comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']}) [{a_info['link_id']}]\n"
+                comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']})\n"
                 wc_string += f'{a_info["cuted"]} '
     else:
         # 精準搜尋沒有結果
@@ -84,13 +93,18 @@ def tf(user_input,except_article_ids = []):
 
 def sbert(user_input, except_article_ids = []):
     print("SBERT「文章向量加權」算法搜尋開始")
+    query_string = user_input
+    #Remove input_string in action_word_list
+    for action_word in action_word_list:
+        if action_word in query_string:
+            query_string = query_string.replace(action_word, "")
 
     return_alist = []
     wc_string = ""
     comment_msg = "\n**你可能也喜歡：**\n --- \n\n"
     # 處理句子
-    orginal_sentence = process_words.process_sentence(user_input, process_injectionword_setup = False ) #只清洗文字
-    injected_sentence = process_words.process_sentence(user_input) #清洗文字並且進行相似詞搜尋
+    orginal_sentence = process_words.process_sentence(query_string, process_injectionword_setup = False ) #只清洗文字
+    injected_sentence = process_words.process_sentence(query_string) #清洗文字並且進行相似詞搜尋
 
     # 轉換成向量
     o_vector = process_words.embedding_sentence(orginal_sentence)
@@ -148,7 +162,7 @@ def sbert(user_input, except_article_ids = []):
                 continue
             else:
                 counter += 1
-                comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']}) [{a_info['link_id']}]\n" 
+                comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']})\n" 
                 wc_string += f'{a_info["cuted"]} '
                 
     else:
@@ -169,10 +183,16 @@ def sbert_mix_tf(user_input, except_article_ids = []):
     print("SBERT 算法[sbert]搜尋開始")
     comment_msg = "\n**相關推薦：**\n --- \n\n"
     wc_string = ""
+    query_string = user_input
+    
+    #Remove input_string in action_word_list
+    for action_word in action_word_list:
+        if action_word in query_string:
+            query_string = query_string.replace(action_word, "")
 
     # 開始注入
-    injected_sentence = process_words.process_sentence(user_input, process_injectionword_setup = True )
-    print(f"注入文本：{user_input} \n-> {injected_sentence}")
+    injected_sentence = process_words.process_sentence(query_string, process_injectionword_setup = True )
+    print(f"注入文本：{query_string} \n-> {injected_sentence}")
     comment_msg = comment_msg + injected_sentence.replace('\n','')
     # 向量化注入文本
     injected_vector = process_words.embedding_sentence(injected_sentence)
@@ -218,7 +238,7 @@ def sbert_mix_tf(user_input, except_article_ids = []):
                 continue
             else:
                 counter += 1
-                comment_msg  += f"{counter}. [{a_info['title']}]({a_info['url']}) [{a_info['link_id']}]\n"
+                comment_msg  += f"{counter}. [{a_info['title']}]({a_info['url']})\n"
                 wc_string += f'{a_info["cuted"]} '
     else:
         # Not Find Data so return random message

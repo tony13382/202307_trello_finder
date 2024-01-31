@@ -13,27 +13,40 @@ rabbitmq_password = os.getenv("rabbitmq_password")
 # 连接到RabbitMQ服务器
 credentials = pika.PlainCredentials(rabbitmq_username, rabbitmq_password)
 parameters = pika.ConnectionParameters(rabbitmq_host, rabbitmq_port, '/', credentials)
-connection = pika.BlockingConnection(parameters)
-channel = connection.channel()
 
 
-def send_img_queue(data):
+def send_trello_mission(data):
+    connection = pika.BlockingConnection(parameters)
+    channel = connection.channel()
     #  建立隊列
-    channel.queue_declare(queue='img_queue')
+    channel.queue_declare(queue='trello_mission')
 
+    card_id = data.get('card_id', '')
+    input_string = data.get('input_string', '')
+    trello_req = data.get('trello_req', {})
+    
+    if(card_id == '' or input_string == ''):
+        return {
+            "state" : False,
+            "err_msg" : "card_id or input_string is empty. \n - car_id:" + card_id + "\n - input_string:" + input_string,
+        }
+    
     # 将Dict数据转换为JSON字符串
-    #data_json = json.dumps({
-    #    'mode' : 'sendPic', / "sendCover"
-    #    'card_id' : "64e3081f66b89ea448eb7da6",
-    #    'img_path' : 'static/images/wordCloud/0_wordcloud.png'
-    #})
-
-    data_json = json.dumps(data)
+    data_json = json.dumps({
+        'card_id' : card_id,
+        'input_string' : input_string,
+        'trello_req' : trello_req,
+    })
 
     # 发送消息
-    channel.basic_publish(exchange='', routing_key='img_queue', body=data_json)
+    channel.basic_publish(exchange='', routing_key='trello_mission', body=data_json)
 
-    print(" [x] Sent data: %s" % data_json)
+    print(f" [x] Sent data: {card_id} | {input_string}. ")
 
-    #  6. 釋放資源，關閉連結
-    # connection.close()
+    # 釋放資源，關閉連結
+    connection.close()
+
+    return {
+        "state" : True,
+        "value" : " [x] Sent data: " + card_id + " | " + input_string,
+    }

@@ -7,7 +7,14 @@ from sentence_transformers import SentenceTransformer, util
 # 正體中文斷詞系統應用於大型語料庫之多方評估研究: https://aclanthology.org/2022.rocling-1.24.pdf
 import re
 import monpa
-monpa.load_userdict("./setting/MONPA_斷詞字典.txt")
+
+# 載入自定義辭典
+for path in ["customize.txt", "keyword_by_edugov.txt"]:
+    try:
+        monpa.load_userdict(f"./setting/monpa_dict/{path}")
+    except:
+        print("monpa_dict ERROR", path)
+        continue
 print('monpa_dict loaded')
 
 # 讀取文字檔並轉換成串列
@@ -83,16 +90,16 @@ def process_sentence(sentence, process_injectionword_setup=True):
     # \p{P} 表示 Unicode 标点符号
     # \s 表示 Unicode 空白字符（包括空格、制表符、换行符等）
     # + 表示匹配一个或多个连续的标点符号或空白字符
-    sentence = re.sub(r'[^\w\s]', '', sentence)
+    sentence = re.sub(r'[^\w\s]', ' ', sentence)
 
     # 2. 去除停用词
     # 停用词表 ＃為基礎少數通用詞彙 ＃速度慢
-    
-    stop_word_list_in_process = ["的原理", "常數", "係數", "定律"]
-    stop_word_list_in_process.extend(stop_word_list)
+    stop_word_list_in_process = []
     stop_word_list_in_process.extend(action_word_list)
+    #stop_word_list_in_process = ["的原理", "常數", "係數", "定律"]
+    #stop_word_list_in_process.extend(stop_word_list)
     for stop_word in stop_word_list_in_process:
-        sentence = sentence.replace(stop_word, "")
+        sentence = sentence.replace(stop_word, " ")
     
     # 3. 将句子切割成词
     word_list = monpa.cut(sentence)

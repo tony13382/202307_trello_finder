@@ -113,5 +113,3 @@ def qa_by_bert(source_content,question):
         }
 
 
-
-
