@@ -1,6 +1,25 @@
 # Trello 知識小幫手 2.0
 ![Cover of plan](./static/cover/cover.png)
-<br><br>清華大學 學習科學與科技研究所 區國良老師研究室計劃案 **（Trello 知識小幫手 2.0）** <br>開發者：清華大學 學習科學與科技研究所 **呂亮進**
+<br><br>清華大學 學習科學與科技研究所 區國良教授研究室計劃案 **（Trello 知識小幫手 2.0）** <br>開發者：清華大學 學習科學與科技研究所 **呂亮進**
+
+
+---
+### 系統啟用步驟
+1. 申請 Trello API Key
+2. 取得 Trello API Password
+3. 確認 `MongoDB (Local)` 與 `Milvus (Docker)` 服務啟用
+4. 確認 `RabbitMQ (Docker)` 服務啟用
+5. 執行 `rmq_service.py` 啟動 RabbitMQ 服務
+   ``` python
+    python rmq_service.py
+   ```
+6. 執行 `app.py` 啟動 API Server
+   ``` python
+    python app.py
+   ```
+7. Trello Webhook Feedback URL 已上線於 `localhost:5000/webhook3`
+8. 設定 Trello Webhook (可透過 IP 位址或 ngrok 進行測試)
+   
 
 ---
 ### 運用中不可處置資料
