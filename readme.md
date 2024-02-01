@@ -9,14 +9,16 @@
 2. 取得 Trello API Password
 3. 確認 `MongoDB (Local)` 與 `Milvus (Docker)` 服務啟用
 4. 確認 `RabbitMQ (Docker)` 服務啟用
-5. 執行 `rmq_service.py` 啟動 RabbitMQ 服務
+5. 執行 `rmq_service.py` 啟動 RabbitMQ 服務<br><br>
    ``` python
     python rmq_service.py
    ```
-6. 執行 `app.py` 啟動 API Server
+   <br>
+6. 執行 `app.py` 啟動 API Server<br><br>
    ``` python
     python app.py
    ```
+   <br>
 7. Trello Webhook Feedback URL 已上線於 `localhost:5000/webhook3`
 8. 設定 Trello Webhook (可透過 IP 位址或 ngrok 進行測試)
    
