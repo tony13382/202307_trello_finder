@@ -38,9 +38,9 @@
 ### 備用資料
 | 文檔名稱 | 用途 | 備註 |
 | :--- | :--- | :--- |
-| [0926_new.xlsx](./docs/文章原始資料/0926_new.xlsx) |  原始文章資料 | 學姊於 07/20 交接 |
-| [static / images / *.png](./static/images) | 文字雲圖片備份 | 對應 `原始資料 df.index` |
-| [tony13382/trello_helper_img・Github*](https://github.com/tony13382/trello_helper_img) | 圖床 | 用於文章文字雲展示 |
+| [0926_new.xlsx](./docs/文章原始資料/0926_new.xlsx) |  原始文章資料 | 於 2023/07/20 交接 |
+| [Pansci.csv](./docs/文章原始資料/Pansci.csv)、[Scitechvista.csv](./docs/文章原始資料/Scitechvista.csv) |  原始文章資料 | 於 2023/11/01 交接 |
+| [20240131-AllArticle.xlsx](./docs/文章原始資料/20240131-AllArticle.xlsx) |  原始文章資料 | 於 2024/01/31 交接 |
 
 > ⚠｜部分資料不上載
 
