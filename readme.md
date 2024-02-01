@@ -39,7 +39,7 @@
 | 文檔名稱 | 用途 | 備註 |
 | :--- | :--- | :--- |
 | [0926_new.xlsx](./docs/文章原始資料/0926_new.xlsx) |  原始文章資料 | 於 2023/07/20 交接 |
-| [Pansci.csv](./docs/文章原始資料/Pansci.csv)、[Scitechvista.csv](./docs/文章原始資料/Scitechvista.csv) |  原始文章資料 | 於 2023/11/01 交接 |
+| [Pansci.csv](./docs/文章原始資料/Pansci.csv)、[Scitechvista.csv](./docs/文章原始資料/Scitechvista.csv) |  原始文章資料 | 於 2023/10/23 交接 |
 | [20240131-AllArticle.xlsx](./docs/文章原始資料/20240131-AllArticle.xlsx) |  原始文章資料 | 於 2024/01/31 交接 |
 
 > ⚠｜部分資料不上載
