@@ -121,7 +121,7 @@ def trello_mission(card_id, input_string):
     else:
         # 產生文字雲
         wc_img_path = process_words.generate_wordcloud(
-            input_string= return_data["tf"]["wc_string"] + " " + return_data["mix"]["wc_string"] + " " + return_data["sbert"]["wc_string"],
+            input_string= ( return_data["tf"]["wc_string"] + " " ) *3 + ( return_data["mix"]["wc_string"] + " " ) *2 + return_data["sbert"]["wc_string"],
             filename=card_id
         )
         if wc_img_path["state"] is True:

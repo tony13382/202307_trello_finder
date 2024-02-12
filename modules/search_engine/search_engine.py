@@ -19,7 +19,8 @@ with open('config.yml', 'r', encoding='utf-8') as config_File:
 Total_tf_value_Gap = config["search_filter"].get("tf_score_min", 0.01) #文章分數門檻
 Limit_Of_Search = config["search_filter"].get("result_limit_max", 20) #搜尋結果上限
 ## SBERT 
-Sbert_Article_Milvus_Distance = config["search_filter"].get("result_limit_max", 2.75) #SBERT 搜尋文章相似度門檻
+Sbert_Article_Milvus_Distance = config["search_filter"].get("sbert_article_distence_min", 2.75) #SBERT 搜尋文章相似度門檻
+print(f"SBERT 搜尋文章相似度門檻：{Sbert_Article_Milvus_Distance}")
 ## 權重計算與調整
 Mix_Vec_Orginal = config["search_filter"]["weight_of_vector"].get("original", 1) #混合向量權重(原始)
 Mix_Vec_Inject = config["search_filter"]["weight_of_vector"].get("injection", 3) #混合向量權重(注入)
@@ -103,6 +104,11 @@ def sbert(user_input, except_article_ids = []):
     for action_word in action_word_list:
         if action_word in query_string:
             query_string = query_string.replace(action_word, "")
+    
+    # Remove 常見干擾字串
+    remove_list = ["定律","定理","公式","公理","法則","原理","規則“","規律","規定"]
+    for word in remove_list:
+        query_string = query_string.replace(word , "")
 
     return_alist = []
     genarate_wordcloud_string = ""
@@ -120,6 +126,7 @@ def sbert(user_input, except_article_ids = []):
 
 
     if(o_vector['state'] is True and f_vector['state'] is True):
+        q_vector["state"] = True
         q_vector["value"] = vector_calculation.calc_array_mean(
             set = [{
                 "array" : o_vector['value'],
@@ -149,7 +156,6 @@ def sbert(user_input, except_article_ids = []):
     if fuzzy_search_result['state'] is True:
         print("相似文章搜尋成功")
         return_alist = [ x["id"] for x in fuzzy_search_result["value"] if x["distance"] > Sbert_Article_Milvus_Distance and x["id"] not in except_article_ids ]
-
     else:
         return {
             "state" : False,
@@ -170,7 +176,7 @@ def sbert(user_input, except_article_ids = []):
             else:
                 counter += 1
                 comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']})\n" 
-                genarate_wordcloud_string += f'{a_info["cuted"]} '
+                genarate_wordcloud_string += f'{a_info["cutted"]} '
                 
     else:
         print(f"相似文章搜尋結果為空 \n")
@@ -204,6 +210,11 @@ def sbert_mix_tf(user_input, except_article_ids = []):
         if action_word in query_string:
             query_string = query_string.replace(action_word, "")
 
+    # Remove 常見干擾字串
+    remove_list = ["定律","定理","公式","公理","法則","原理","規則“","規律","規定"]
+    for word in remove_list:
+        query_string = query_string.replace(word , "")
+    
     # 開始注入
     injected_sentence = process_words.process_sentence(query_string, process_injectionword_setup = True )
     print(f"注入文本：{query_string} \n-> {injected_sentence}")
