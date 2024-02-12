@@ -1,3 +1,4 @@
+# Please Rename this file to config.yml
 flask:
   port: 5000
 mongodb:
