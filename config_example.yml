@@ -1,51 +1,51 @@
 # Please Rename this file to config.yml
 flask:
-  port: 5000
+    port: 5000
 mongodb:
-  path: 
-  username: ""
-  password: ""
-  db_name: ""
-  article_db: ""
-  keyword_db: ""
-  keyword_record_db: ""
-  injection_db: ""
-  log_db: ""
+    path: 
+    username: ""
+    password: ""
+    db_name: ""
+    article_db: ""
+    keyword_db: ""
+    keyword_record_db: ""
+    injection_db: ""
+    log_db: ""
 search_filter:
-  result_limit_max: 20
-  tf_score_min: 0.01
-  sbert_article_distence_min: 0.75
-  weight_of_vector:
-    original: 1
-    injection: 3
+    result_limit_max: 20
+    tf_score_min: 0.01
+    sbert_article_distence_min: 0.75
+    weight_of_vector:
+        original: 1
+        injection: 3
 milvus:
-  path: "localhost"
-  port: 19530
-  db_name: "default"
-  search_config:
-    basic:
-      index_type: "FLAT"
-      metric_type: "IP"
-    article:
-      collection_name: ""
-      index_type: "FLAT"
-      metric_type: "IP"
-      article_filter: 5
-    keyword:
-      collection_name: ""
-      index_type: "FLAT"
-      metric_type: "L2"
+    path: "localhost"
+    port: 19530
+    db_name: "default"
+    search_config:
+        basic:
+            index_type: "FLAT"
+            metric_type: "IP"
+        article:
+            collection_name: ""
+            index_type: "FLAT"
+            metric_type: "IP"
+            article_filter: 5
+        keyword:
+            collection_name: ""
+            index_type: "FLAT"
+            metric_type: "L2"
 rabbitMQ:
-  host: "localhost"
-  port: 5672
-  username: ""
-  password: ""
+    host: "localhost"
+    port: 5672
+    username: ""
+    password: ""
 trello:
-  api_key: ""
-  token: ""
-  request_limit: 20
+    api_key: ""
+    token: ""
+    request_limit: 20
 answer_core:
-  anthropic: ""
-  # anthropic_api_key
-  open_ai: ""
-  # openai_api_key
+    anthropic: ""
+    # anthropic_api_key
+    open_ai: ""
+    # openai_api_key
