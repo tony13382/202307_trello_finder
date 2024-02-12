@@ -10,3 +10,5 @@ docs/jf-openhuninn-2.0.ttf
 .tmp.driveupload
 *.env
 post.ipynb
+config.json
+config.yml

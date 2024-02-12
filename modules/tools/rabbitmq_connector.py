@@ -1,25 +1,40 @@
 # -*- coding: utf-8 -*-
+####################################################################
+# 環境變數
+####################################################################
+import yaml
+with open('config.yml', 'r', encoding='utf-8') as config_File:
+    config = yaml.safe_load(config_File)
+RABBITMA_HOST = config['rabbitMQ']['host']
+RABBITMQ_PORT = config['rabbitMQ']['port']
+print(f'HOST ON:{RABBITMA_HOST}:{RABBITMQ_PORT}')
+
+RABBITMQ_USERNAME = config['rabbitMQ']['username']
+RABBITMQ_PASSSWORD = config['rabbitMQ']['password']
+print(f'ACC:{RABBITMQ_USERNAME} | PASS: {RABBITMQ_PASSSWORD}')
+
+####################################################################
+
+
+####################################################################
+# Import RabbitMQ Module ＆ Set Connection
+####################################################################
 import pika
 import json
-
-import os
-from dotenv import load_dotenv
-load_dotenv()
-rabbitmq_host = os.getenv("rabbitmq_host")
-rabbitmq_port = os.getenv("rabbitmq_port")
-rabbitmq_username = os.getenv("rabbitmq_username")
-rabbitmq_password = os.getenv("rabbitmq_password")
-
 # 连接到RabbitMQ服务器
-credentials = pika.PlainCredentials(rabbitmq_username, rabbitmq_password)
-parameters = pika.ConnectionParameters(rabbitmq_host, rabbitmq_port, '/', credentials)
+credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSSWORD)
+parameters = pika.ConnectionParameters(RABBITMA_HOST, RABBITMQ_PORT, '/', credentials)
+####################################################################
 
 
-def send_trello_mission(data):
+def send_trello_mission(data, coreNum=1):
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
     #  建立隊列
-    channel.queue_declare(queue='trello_mission')
+    if(coreNum == 1):
+        channel.queue_declare(queue='trello_mission')
+    else:
+        channel.queue_declare(queue=f'trello_mission{coreNum}', durable=True)
 
     card_id = data.get('card_id', '')
     input_string = data.get('input_string', '')
@@ -39,7 +54,10 @@ def send_trello_mission(data):
     })
 
     # 发送消息
-    channel.basic_publish(exchange='', routing_key='trello_mission', body=data_json)
+    if(coreNum == 1):
+        channel.basic_publish(exchange='', routing_key='trello_mission', body=data_json)
+    else:
+        channel.basic_publish(exchange='', routing_key=f'trello_mission{coreNum}', body=data_json)
 
     print(f" [x] Sent data: {card_id} | {input_string}. ")
 

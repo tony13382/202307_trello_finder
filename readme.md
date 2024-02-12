@@ -7,9 +7,10 @@
 ### 系統啟用步驟
 1. 申請 Trello API Key
 2. 取得 Trello API Password
-3. 確認 `MongoDB (Local)` 與 `Milvus (Docker)` 服務啟用
+3. 確認 `MongoDB (Local)`、`Milvus (Docker)`、`RabbitMQ (Docker)` 服務啟用
 4. 確認 `RabbitMQ (Docker)` 服務啟用
 5. 執行 `rmq_service.py` 啟動 RabbitMQ 服務<br><br>
+   >多服務則使用多個終端機同時打開即可<br>每新增一個就代表同時能多服務一位
    ``` python
     python rmq_service.py
    ```
@@ -27,13 +28,11 @@
 ### 運用中不可處置資料
 | 文檔名稱 | 用途 | 備註 |
 | :--- | :--- | :--- |
-| [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 資料轉換模塊 | 文字雲、mongo milvus 資料庫轉存... |
-| [jf-openhuninn-2.0.ttf](./static/others/jf-openhuninn-2.0.ttf) |  相依於 [process_words.py](./toolbox/process_words.py) 、 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 文字雲採用字體，[來源](https://justfont.com/huninn/) |
-| [stopwords_chinese.txt](./setting/stopwords_chinese.txt) | 相依於 [process_words.py](./toolbox/process_words.py) 、 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 斷詞停用字列表<br>（基於 [baipengyan/Chinese-StopWords](https://github.com/baipengyan/Chinese-StopWords/blob/master/ChineseStopWords.txt) 停用表翻譯＋擴充） |
-| [MONPA_斷詞字典.txt](./setting/MONPA_斷詞字典.txt) | 相依於 [process_words.py](./toolbox/process_words.py) | 斷詞權重調整 |
-| [action_word_list.txt](./setting/action_word_list.txt) | 相依於 [app.py](./app.py) | Trello 啟動詞設定 |
-| [not_found_msg_list.txt](./setting/not_found_msg_list.txt) | 相依於 [app.py](./app.py) | 無資料罐頭訊息設定 |
-| [vector_all.json](./docs/backup/vector_all.json) |  df 備份檔案、相依於 [檔案轉換與資料測試](./docs/檔案轉換與資料測試) | 包含所有文本向量化的 dataframe |
+| [jf-openhuninn-2.0.ttf](./static/others/jf-openhuninn-2.0.ttf) |  文字雲採用字體  | 開源授權。[來源](https://justfont.com/huninn/) |
+| [stopwords_chinese.txt](./setting/stopwords_chinese.txt) | 斷詞停用字列表 | （基於 [baipengyan/Chinese-StopWords](https://github.com/baipengyan/Chinese-StopWords/blob/master/ChineseStopWords.txt) 停用表翻譯＋擴充） |
+| [MONPA 斷詞字典資料夾](./setting/monpa_dict/) | 斷詞權重調整 | 斷詞權重調整（根據 [斷詞編撰](./docs/斷詞編撰/) 編制 [教育部關鍵字](./setting/monpa_dict/keyword_by_edugov.txt)），如需自定請使用 [自定義擴充關鍵字](./setting/monpa_dict/customize.txt) |
+| [action_word_list.txt](./setting/action_word_list.txt) | Trello 啟動詞設定 | - |
+| [not_found_msg_list.txt](./setting/not_found_msg_list.txt) | 無資料罐頭訊息設定 | 查無結果隨機抽取 |
 | [Post.ipynb- colab](https://colab.research.google.com/drive/1LX8n4HB-GEFX9aWn60nsdrU9yUvvqNmd?usp=drive_link) | 部署用筆記本文件 | 須申請權限 |
 | [Trello Helper 部署清單](https://docs.google.com/spreadsheets/d/1aijNun9tFA1iyUcvc5q8sN-xQnVlfSumsZDI_oDR_Kg/edit?usp=drive_link) | 部署清單，包含 board id, webhook id | 須申請權限 |
 
@@ -43,6 +42,7 @@
 | [0926_new.xlsx](./docs/文章原始資料/0926_new.xlsx) |  原始文章資料 | 於 2023/07/20 交接 |
 | [Pansci.csv](./docs/文章原始資料/Pansci.csv)、[Scitechvista.csv](./docs/文章原始資料/Scitechvista.csv) |  原始文章資料 | 於 2023/10/23 交接 |
 | [20240131-AllArticle.xlsx](./docs/文章原始資料/20240131-AllArticle.xlsx) |  原始文章資料 | 於 2024/01/31 交接 |
+| [V1 切割 Excel 列表](./docs/文章原始資料/20240206_V1切割/Excel/) |  重構文章資料（原本V1） | 於 2024/02/06 交接 |
 
 > ⚠｜部分資料不上載
 

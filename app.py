@@ -16,10 +16,10 @@ import threading
 ####################################################################
 # Setup environment value
 ####################################################################
-import os
-from dotenv import load_dotenv
-load_dotenv()
-flask_server_port = int(os.getenv("flask_server_port"))
+import yaml
+with open('config.yml', 'r', encoding='utf-8') as config_File:
+    config = yaml.safe_load(config_File)
+FLASK_SERVER_PORT = config['flask']['port']
 
 
 ####################################################################
@@ -78,11 +78,12 @@ def webhook_v3_post():
 
                             # 檢查是否包含動作關鍵字
                             if(check_action_word(user_input,action_word_list)):
-                                rabbitmq_connector.send_trello_mission({
+                                rabbitmq_connector.send_trello_mission(data={
                                     'card_id': card_id,
                                     'input_string': user_input,
                                     'trello_req': req
-                                })
+                                }, coreNum = 1)
+                                # coreNum
                                 return ("", 200)
                             else:
                                 print("不包含動作關鍵字: ",user_input)
@@ -102,4 +103,4 @@ if __name__ == '__main__':
     # Set Debug Mode （每次儲存自動刷新，正式上線需要關閉）
     app.debug = True
     # Run Server on 0.0.0.0 （允許外部連線）
-    app.run(host="0.0.0.0",port=flask_server_port)
+    app.run(host="0.0.0.0",port=FLASK_SERVER_PORT)

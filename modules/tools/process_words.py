@@ -1,7 +1,4 @@
-# Import modules
-from sentence_transformers import SentenceTransformer, util
-
-
+####################################################################
 # Import modules of wordCut
 # https://github.com/monpa-team/monpa
 # 正體中文斷詞系統應用於大型語料庫之多方評估研究: https://aclanthology.org/2022.rocling-1.24.pdf
@@ -16,7 +13,9 @@ for path in ["customize.txt", "keyword_by_edugov.txt"]:
         print("monpa_dict ERROR", path)
         continue
 print('monpa_dict loaded')
+####################################################################
 
+####################################################################
 # 讀取文字檔並轉換成串列
 def txt_to_list(file_path):
     try:
@@ -31,31 +30,38 @@ def txt_to_list(file_path):
         print("讀取檔案時發生錯誤：", e)
         return []
 
-
-
 # 指定文字檔路徑
 stop_word_list = txt_to_list("./setting/stopwords_chinese.txt")
 print('stop_word_list loaded')
+# 指定文字檔路徑
+action_word_list = txt_to_list("./setting/action_word_list.txt")
+####################################################################
 
+
+####################################################################
 # Import modules of wordCloud
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')
 from wordcloud import WordCloud
+####################################################################
 
-
+####################################################################
 # Import modules of mongo_connector(For process_sentence)
 from modules.tools.mongo_connector import process_injectionword
+####################################################################
 
+
+####################################################################
 # Select model by transformer
 # about model: https://huggingface.co/sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+from sentence_transformers import SentenceTransformer, util
 sbert_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
 print('sbert_model loaded')
-
-# 指定文字檔路徑
-action_word_list = txt_to_list("./setting/action_word_list.txt")
+####################################################################
 
 
-####################
+
+####################################################################
 ## 轉換文本至向量
 # Request Value
 # sentence : String
@@ -63,7 +69,7 @@ action_word_list = txt_to_list("./setting/action_word_list.txt")
 # Response Value
 # state : Boolean
 # value : [] Array(768)
-####################
+####################################################################
 def embedding_sentence(sentence):
     try:
         return {
@@ -76,14 +82,14 @@ def embedding_sentence(sentence):
             "value" : str(exp),
         }
 
-####################
+####################################################################
 ## 整理文本並注入資料
 # Request Value
 # sentence : String
 #-------------------
 # Response Value
 # => String
-####################
+####################################################################
 def process_sentence(sentence, process_injectionword_setup=True):
     # 1. 去除標點符號
     # 使用正则表达式匹配标点符号，并将其替换为空字符串
@@ -115,7 +121,7 @@ def process_sentence(sentence, process_injectionword_setup=True):
     return sentence
 
 
-####################
+####################################################################
 ## 生成文字雲
 # Request Value
 # input_string : String
@@ -123,8 +129,7 @@ def process_sentence(sentence, process_injectionword_setup=True):
 # Response Value
 # state : Boolean
 # value : String 圖片路徑
-####################
-
+####################################################################
 # Function to load stop words from the file
 def load_stopwords(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
@@ -174,3 +179,4 @@ def generate_wordcloud(input_string, filename="0_wordcloud"):
             "state" : False,
             "value" : str(exp),
         }
+####################################################################

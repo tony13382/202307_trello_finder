@@ -8,24 +8,31 @@ import modules.tools.process_words as process_words
 # MongoDB 文章搜尋模組
 import modules.tools.mongo_connector as mongo_connector
 # Answer Core 模組
-import modules.tools.answer_core as answer_core
-# 用於 MQ
+#import modules.tools.answer_core as answer_core
+# 用於 rabbitMQ
 import pika
 import json
+import os
 
 # 啟動詞與無資料罐頭訊息載入完成！
 import modules.tools.process_words as read_txt_to_list
 action_word_list = read_txt_to_list.txt_to_list("./setting/action_word_list.txt")
 
-import os
-from dotenv import load_dotenv
-load_dotenv()
-rabbitmq_host = os.getenv("rabbitmq_host")
-rabbitmq_port = os.getenv("rabbitmq_port")
-rabbitmq_username = os.getenv("rabbitmq_username")
-rabbitmq_password = os.getenv("rabbitmq_password")
+####################################################################
+# Setup Trello API Key and Token
+####################################################################
+import yaml
+with open('config.yml', 'r', encoding='utf-8') as config_File:
+    config = yaml.safe_load(config_File)
+RABBITMQ_HOST = config['rabbitMQ']['host']
+RABBITMQ_PORT = config['rabbitMQ']['port']
+RABBITMQ_USERNAME = config['rabbitMQ']['username']
+RABBITMQ_PASSWORD = config['rabbitMQ']['password']
 
 
+####################################################################
+
+# Trello 任務
 def trello_mission(card_id, input_string):
     return_data = {
         'card_id' : card_id,
@@ -38,6 +45,7 @@ def trello_mission(card_id, input_string):
     })
 
     query_string = input_string
+    
     #Remove input_string in action_word_list
     for action_word in action_word_list:
         if action_word in query_string:
@@ -45,24 +53,32 @@ def trello_mission(card_id, input_string):
     return_data["query_string"] = query_string
     
     # 進行搜尋
+    except_article_ids = []
     return_data["tf"] = search_engine.tf(query_string)
-    return_data["mix"] = search_engine.sbert_mix_tf(query_string, except_article_ids=[ x["article_id"] for x in return_data["tf"]["alist"]])
-    return_data["sbert"] = search_engine.sbert(query_string, except_article_ids=([ x["article_id"] for x in return_data["tf"]["alist"]] + [ x["_id"] for x in return_data["mix"]["alist"]]))
+    if return_data["tf"].get("state", False) is True:
+        except_article_ids = [ x["article_id"] for x in return_data["tf"]["alist"]]
+    return_data["mix"] = search_engine.sbert_mix_tf(query_string, except_article_ids = except_article_ids)
+    if return_data["mix"].get("state", False) is True:
+        except_article_ids = except_article_ids + [ x["_id"] for x in return_data["mix"]["alist"]]
+    return_data["sbert"] = search_engine.sbert(query_string, except_article_ids=except_article_ids)
     
     # 結果留言
-    if return_data["sbert"]["state"] is True:
+    # 從 SBERT -> Mix -> TF 倒序留言，以便於使用者看到最接近的結果在最上方
+    if return_data["sbert"].get("state", False) is True:
         trello_connector.addCommentToCard(
             card_id, 
             return_data["sbert"]["comment_msg"]
         )
     else:
         print(return_data["sbert"]["err_msg"])
-        return{
+        return {
             "state" : False,
-            "err_msg" : return_data["sbert"]["err_msg"]
+            "err_msg" : return_data["sbert"]["err_msg"],
+            'card_id' : card_id,
+            'input_string' : input_string,
         }
     
-    if return_data["mix"]["state"] is True:
+    if return_data["mix"].get("state", False) is True:
         trello_connector.addCommentToCard(
             card_id, 
             return_data["mix"]["comment_msg"]
@@ -71,10 +87,12 @@ def trello_mission(card_id, input_string):
         print(return_data["mix"]["err_msg"])
         return{
             "state" : False,
-            "err_msg" : return_data["mix"]["err_msg"]
+            "err_msg" : return_data["mix"]["err_msg"],
+            'card_id' : card_id,
+            'input_string' : input_string,
         }
     
-    if return_data["tf"]["state"] is True:
+    if return_data["tf"].get("state", False) is True:
         trello_connector.addCommentToCard(
             card_id, 
             return_data["tf"]["comment_msg"]
@@ -83,7 +101,9 @@ def trello_mission(card_id, input_string):
         print(return_data["tf"]["err_msg"])
         return{
             "state" : False,
-            "err_msg" : return_data["tf"]["err_msg"]
+            "err_msg" : return_data["tf"]["err_msg"],
+            'card_id' : card_id,
+            'input_string' : input_string,
         }
 
     # Add Divider
@@ -100,7 +120,10 @@ def trello_mission(card_id, input_string):
         )
     else:
         # 產生文字雲
-        wc_img_path = process_words.generate_wordcloud(return_data["tf"]["wc_string"] + " " + return_data["mix"]["wc_string"] + " " + return_data["sbert"]["wc_string"])
+        wc_img_path = process_words.generate_wordcloud(
+            input_string= return_data["tf"]["wc_string"] + " " + return_data["mix"]["wc_string"] + " " + return_data["sbert"]["wc_string"],
+            filename=card_id
+        )
         if wc_img_path["state"] is True:
             # 更新封面
             print("WordCloud 圖片產生成功")
@@ -108,7 +131,8 @@ def trello_mission(card_id, input_string):
                 card_id,
                 wc_img_path["value"]
             )
-
+            # 上傳完成，刪除圖片
+            os.remove(wc_img_path["value"])
 
         # 產生回應
         trello_connector.updateDataToCard(card_id, {
@@ -119,18 +143,19 @@ def trello_mission(card_id, input_string):
 
     # GPT-3 回答
     # 產生回應
+    """
     answer = answer_core.qa_by_gpt3(query_string)
     if answer["state"] is True:
         trello_connector.addCommentToCard(
             card_id, 
             f"**參考回答：**\n --- \n\n{answer['value']} \n --- \n此為 GPT-3.5 模型回答，僅供參考。"
         )
-
+    """
     return {
         "state" : True,
         "search_result" : return_data
     }
-
+    
 
 def save_data_to_db(trello_mission_rq):
     if trello_mission_rq["state"] is True:    
@@ -161,24 +186,28 @@ def callback(ch, method, properties, body):
     print(body)
     print('------------------')
     data_dict = json.loads(body)
-    
+    # 整理資料
     card_id = data_dict.get('card_id', '')
     input_string = data_dict.get('input_string', '')
     trello_req = data_dict.get('trello_req', {})
     print(f" [x] Sent data: {card_id} | {input_string}. ")
     # 執行 Trello 任務(包含搜尋、留言、封面更新)
-    trello_mission_rq = trello_mission(card_id, input_string)
-    trello_mission_rq['trello_req'] = trello_req
-    
-    # 儲存資料到資料庫
-    save_data_to_db(trello_mission_rq)
+    if card_id != "" and input_string != "":
+        # 執行任務
+        trello_mission_rq = trello_mission(card_id, input_string)
+        # 任務資料儲存與附加行為資訊
+        trello_mission_rq['trello_req'] = trello_req
+        # 儲存資料到資料庫
+        save_data_to_db(trello_mission_rq)
+    else:
+        print("Get Null Data. Please Check Again.")
 
     
     
 
 # 连接到RabbitMQ服务器
-credentials = pika.PlainCredentials(rabbitmq_username, rabbitmq_password)
-parameters = pika.ConnectionParameters(rabbitmq_host, rabbitmq_port, '/', credentials)
+credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
+parameters = pika.ConnectionParameters(RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 

@@ -1,37 +1,45 @@
+####################################################################
+# Setup environment value
+####################################################################
+import yaml
+with open('config.yml', 'r', encoding='utf-8') as config_File:
+    config = yaml.safe_load(config_File)
+
+MILVUS_PATH = config['milvus']['path']
+MILVUS_PORT = config['milvus']['port']
+MILVUS_DB_NAME = config['milvus']['db_name']
+
+ARTICLE_COLLECTION = config['milvus']['search_config']['article']['collection_name']
+ARTICLE_INDEX_TYPE = config['milvus']['search_config']['article']['index_type']
+ARTICLE_METRIC_TYPE = config['milvus']['search_config']['article']['metric_type']
+
+KEYWORD_COLLECTION = config['milvus']['search_config']['keyword']['collection_name']
+KEYWORD_INDEX_TYPE = config['milvus']['search_config']['keyword']['index_type']
+KEYWORD_METRIX_TYPE = config['milvus']['search_config']['keyword']['metric_type']
+
+####################################################################
+
+
+####################################################################
+## Milvus Setup Connection
 # Import modules of Milvus
 from pymilvus import connections, Collection, utility
-# Setup environment value
-import os
-from dotenv import load_dotenv
-load_dotenv()
-milvus_path = os.getenv("milvus_path")
-milvus_port = os.getenv("milvus_port")
-milvus_db_name = os.getenv("milvus_db_name")
-
-milvus_article_collection = os.getenv("milvus_article_collection")
-article_vector_index_type = os.getenv("article_vector_index_type")
-article_vector_metric_type = os.getenv("article_vector_metric_type")
-
-milvus_keyword_collection = os.getenv("milvus_keyword_collection")
-keyword_vector_index_type = os.getenv("keyword_vector_index_type")
-keyword_vector_metric_type = os.getenv("keyword_vector_metric_type")
-
-
 # Connect to milvus server (connector)
 conn = connections.connect(
     alias="default",
-    host=milvus_path,
-    port=milvus_port,
-    db_name=milvus_db_name
+    host=MILVUS_PATH,
+    port=MILVUS_PORT,
+    db_name=MILVUS_DB_NAME
 )
-
 # 設定 Milvus collection 名稱
 # 建立 collection
-article_collection = Collection(milvus_article_collection)
-keyword_collection = Collection(milvus_keyword_collection)
+article_collection = Collection(ARTICLE_COLLECTION)
+keyword_collection = Collection(KEYWORD_COLLECTION)
+####################################################################
 
 
-## 搜尋 Top-K 相似文本
+####################################################################
+## 搜尋 Top-K 相似文章
 def search_article_vector(query_vector, limit=10, offset=0):
     try:
         # Start searching
@@ -39,8 +47,8 @@ def search_article_vector(query_vector, limit=10, offset=0):
             data = [query_vector], 
             anns_field = "value", 
             param = {
-                "index_type": article_vector_index_type,
-                "metric_type": article_vector_metric_type, 
+                "index_type": ARTICLE_INDEX_TYPE,
+                "metric_type": ARTICLE_METRIC_TYPE, 
                 "params": {"nprobe": 1},      
             },
             limit = limit, 
@@ -71,7 +79,10 @@ def search_article_vector(query_vector, limit=10, offset=0):
             "state" : False,
             "value" : str(exp),
         }
-    
+####################################################################
+
+
+####################################################################  
 ## 搜尋 Top-K 相似關鍵字
 def search_keyword_vector(query_vector, limit=10, offset=0):
     try:
@@ -80,8 +91,8 @@ def search_keyword_vector(query_vector, limit=10, offset=0):
             data = [query_vector], 
             anns_field = "vector", 
             param = {
-                "index_type": keyword_vector_index_type,
-                "metric_type": keyword_vector_metric_type, 
+                "index_type": KEYWORD_INDEX_TYPE,
+                "metric_type": KEYWORD_METRIX_TYPE, 
                 "params": {"nprobe": 1},      
             },
             limit = limit, 
@@ -112,3 +123,4 @@ def search_keyword_vector(query_vector, limit=10, offset=0):
             "state" : False,
             "value" : str(exp),
         }
+####################################################################

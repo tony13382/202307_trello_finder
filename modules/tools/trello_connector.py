@@ -3,13 +3,17 @@
 # http://docs.python-requests.org
 import requests
 import json
-import os
-from dotenv import load_dotenv
 
+####################################################################
 # Setup Trello API Key and Token
-load_dotenv()
-api_key = os.getenv("trello_api_key")
-api_token = os.getenv("trello_api_token")
+####################################################################
+import yaml
+with open('config.yml', 'r', encoding='utf-8') as config_File:
+    config = yaml.safe_load(config_File)
+TRELLO_API_KEY = config['trello']['api_key']
+TRELLO_API_TOKEN = config['trello']['token']
+
+####################################################################
 
 
 ####################
@@ -28,8 +32,8 @@ def updateDataToCard(card_id,data):
     url = f"https://api.trello.com/1/cards/{card_id}"
     headers = {"Accept": "application/json"}
     query = {
-        'key': api_key,
-        'token': api_token
+        'key': TRELLO_API_KEY,
+        'token': TRELLO_API_TOKEN
     }
     query.update(data)
 
@@ -57,8 +61,8 @@ def addCommentToCard(card_id,msgString):
     }
     query = {
         'text': str(msgString),
-        'key': api_key,
-        'token': api_token
+        'key': TRELLO_API_KEY,
+        'token': TRELLO_API_TOKEN
     }
 
     response = requests.request(
@@ -97,7 +101,7 @@ def addCommentWithPictureToCard(card_id,img_path, msgString):
 def addFileToCard(card_id,file_path):
     # 上傳圖片，獲取附件ID
     url = f"https://api.trello.com/1/cards/{card_id}/attachments"
-    params = {"key": api_key, "token": api_token}
+    params = {"key": TRELLO_API_KEY, "token": TRELLO_API_TOKEN}
     files = {"file": open(file_path, "rb")}
     response = requests.post(url, params=params, files=files)
     data = response.json()
@@ -111,7 +115,7 @@ def addCoverToCard(card_id,img_path):
     
     # 將附件ID設置為封面
     url = f"https://api.trello.com/1/cards/{card_id}/idAttachmentCover"
-    params = {"key": api_key, "token": api_token, "value": attachment_id}
+    params = {"key": TRELLO_API_KEY, "token": TRELLO_API_TOKEN, "value": attachment_id}
     response = requests.put(url, params=params)
     #print(response.json())
 

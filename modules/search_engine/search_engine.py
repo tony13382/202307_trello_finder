@@ -11,13 +11,18 @@ action_word_list = read_txt_to_list.txt_to_list("./setting/action_word_list.txt"
 
 #############################################
 # 關鍵設定數值
-Total_tf_value_Gap = 0.01 #文章分數門檻
-Limit_Of_Search = 20 #搜尋結果上限
+#############################################
+import yaml
+with open('config.yml', 'r', encoding='utf-8') as config_File:
+    config = yaml.safe_load(config_File)
+
+Total_tf_value_Gap = config["search_filter"].get("tf_score_min", 0.01) #文章分數門檻
+Limit_Of_Search = config["search_filter"].get("result_limit_max", 20) #搜尋結果上限
 ## SBERT 
-Sbert_Article_Milvus_Distance = 2.75 #SBERT 搜尋文章相似度門檻
+Sbert_Article_Milvus_Distance = config["search_filter"].get("result_limit_max", 2.75) #SBERT 搜尋文章相似度門檻
 ## 權重計算與調整
-Mix_Vec_Orginal = 1 #混合向量權重(原始)
-Mix_Vec_Inject = 3 #混合向量權重(注入)
+Mix_Vec_Orginal = config["search_filter"]["weight_of_vector"].get("original", 1) #混合向量權重(原始)
+Mix_Vec_Inject = config["search_filter"]["weight_of_vector"].get("injection", 3) #混合向量權重(注入)
 
 #############################################
 
@@ -75,7 +80,7 @@ def tf(user_input,except_article_ids = []):
             if a_info is not None and len(a_info) > 0:
                 counter += 1
                 comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']})\n"
-                wc_string += f'{a_info["cuted"]} '
+                wc_string += f'{a_info["cutted"]} '
     else:
         # 精準搜尋沒有結果
         comment_msg += f"精準搜尋沒有結果 \n {random.choice(not_found_msg_list)} \n"
@@ -94,17 +99,19 @@ def tf(user_input,except_article_ids = []):
 def sbert(user_input, except_article_ids = []):
     print("SBERT「文章向量加權」算法搜尋開始")
     query_string = user_input
-    #Remove input_string in action_word_list
+    # Remove input_string in action_word_list
     for action_word in action_word_list:
         if action_word in query_string:
             query_string = query_string.replace(action_word, "")
 
     return_alist = []
-    wc_string = ""
+    genarate_wordcloud_string = ""
     comment_msg = "\n**你可能也喜歡：**\n --- \n\n"
     # 處理句子
     orginal_sentence = process_words.process_sentence(query_string, process_injectionword_setup = False ) #只清洗文字
-    injected_sentence = process_words.process_sentence(query_string) #清洗文字並且進行相似詞搜尋
+    print(f"原始句子：{orginal_sentence}")
+    injected_sentence = process_words.process_sentence(query_string, process_injectionword_setup = True) #清洗文字並且進行相似詞搜尋
+    print(f"注入句子：{injected_sentence}")
 
     # 轉換成向量
     o_vector = process_words.embedding_sentence(orginal_sentence)
@@ -112,7 +119,7 @@ def sbert(user_input, except_article_ids = []):
     q_vector = f_vector #初始化向量
 
 
-    if(o_vector['state'] and f_vector['state']):
+    if(o_vector['state'] is True and f_vector['state'] is True):
         q_vector["value"] = vector_calculation.calc_array_mean(
             set = [{
                 "array" : o_vector['value'],
@@ -130,7 +137,7 @@ def sbert(user_input, except_article_ids = []):
         }
         
 
-    if q_vector['state']:
+    if q_vector['state'] is True:
         print("向量計算成功")
         fuzzy_search_result = vector_search.search_article_vector(q_vector["value"])
     else:
@@ -139,7 +146,7 @@ def sbert(user_input, except_article_ids = []):
             "err_msg" : "向量轉換失敗",
         }
 
-    if fuzzy_search_result['state']:
+    if fuzzy_search_result['state'] is True:
         print("相似文章搜尋成功")
         return_alist = [ x["id"] for x in fuzzy_search_result["value"] if x["distance"] > Sbert_Article_Milvus_Distance and x["id"] not in except_article_ids ]
 
@@ -163,7 +170,7 @@ def sbert(user_input, except_article_ids = []):
             else:
                 counter += 1
                 comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']})\n" 
-                wc_string += f'{a_info["cuted"]} '
+                genarate_wordcloud_string += f'{a_info["cuted"]} '
                 
     else:
         print(f"相似文章搜尋結果為空 \n")
@@ -173,9 +180,16 @@ def sbert(user_input, except_article_ids = []):
     return {
         "state" : True,
         "comment_msg" : comment_msg,
-        "wc_string" : wc_string,
+        "wc_string" : genarate_wordcloud_string,
         "alist" : return_alist,
         "vector_result" : fuzzy_search_result,
+        'query' : {
+            "orginal_sentence" : orginal_sentence,
+            "injected_sentence" : injected_sentence,
+            "orginal_vector" : o_vector["value"],
+            "injected_vector" : f_vector["value"].tolist(),
+            "query_vector" : q_vector["value"].tolist(),
+        },
     }
 
 
@@ -239,7 +253,7 @@ def sbert_mix_tf(user_input, except_article_ids = []):
             else:
                 counter += 1
                 comment_msg  += f"{counter}. [{a_info['title']}]({a_info['url']})\n"
-                wc_string += f'{a_info["cuted"]} '
+                wc_string += f'{a_info["cutted"]} '
     else:
         # Not Find Data so return random message
         comment_msg += f"- {random.choice(not_found_msg_list)} \n"

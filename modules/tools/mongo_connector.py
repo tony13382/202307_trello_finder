@@ -2,25 +2,28 @@
 from pymongo import MongoClient
 # Import modules of datetime(For Log)
 from datetime import datetime,timezone,timedelta
+
+
+####################################################################
 # Setup environment value
-import os
-from dotenv import load_dotenv
-load_dotenv()
-mongodb_path = os.getenv("mongodb_path")
-#print("mongodb_path: ",mongodb_path)
-mongodb_path = "mongodb://100.90.12.119:27017/?retryWrites=true&serverSelectionTimeoutMS=5000&connectTimeoutMS=10000"
-mongodb_username = os.getenv("mongodb_username")  # 替換為你的用戶名
-mongodb_password = os.getenv("mongodb_password")  # 替換為你的密碼
+####################################################################
+import yaml
+with open('config.yml', 'r', encoding='utf-8') as config_File:
+    config = yaml.safe_load(config_File)
+MONGODB_PATH = config['mongodb']['path']
+MONGODB_USERNAME = config['mongodb']['username']
+MONGODB_PASSWORD = config['mongodb']['password']
+####################################################################
 
 # 建立 MongoDB 連線
-#client = MongoClient(mongodb_path, username=mongodb_username, password=mongodb_password)
-client = MongoClient(mongodb_path)
+#client = MongoClient(MONGODB_PATH, username=MONGODB_USERNAME, password=MONGODB_PASSWORD)
+client = MongoClient(MONGODB_PATH)
 db = client.nthu_trello_helper
-mongo_article_collection = db.article
+mongo_article_collection = db.article2024
 mongo_trello_log_collection = db.trello_log
 mongo_word_injection_collection = db.injection_list
-mongo_keyword_collection = db.keyword
-mongo_keyword_record_collection = db.keyword_record
+mongo_keyword_collection = db.keyword2024
+mongo_keyword_record_collection = db.keyword_record2024
 
 ####################################################################
 # simple funtion (only search)
