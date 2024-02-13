@@ -1,11 +1,23 @@
 ####################################################################
-# Import modules of wordCut
+## Import modules of wordCut
 # https://github.com/monpa-team/monpa
 # 正體中文斷詞系統應用於大型語料庫之多方評估研究: https://aclanthology.org/2022.rocling-1.24.pdf
+####################################################################
 import re
 import monpa
+####################################################################
 
-# 載入自定義辭典
+####################################################################
+# Import modules of wordCloud
+import matplotlib.pyplot as plt
+plt.switch_backend('Agg')
+from wordcloud import WordCloud
+####################################################################
+
+
+####################################################################
+## 載入自定義辭典
+####################################################################
 for path in ["customize.txt", "keyword_by_edugov.txt"]:
     try:
         monpa.load_userdict(f"./setting/monpa_dict/{path}")
@@ -15,8 +27,10 @@ for path in ["customize.txt", "keyword_by_edugov.txt"]:
 print('monpa_dict loaded')
 ####################################################################
 
+
 ####################################################################
-# 讀取文字檔並轉換成串列
+## 讀取文字檔並轉換成串列
+####################################################################
 def txt_to_list(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -29,21 +43,14 @@ def txt_to_list(file_path):
     except Exception as e:
         print("讀取檔案時發生錯誤：", e)
         return []
-
-# 指定文字檔路徑
+#===========================================
+# 停用詞表載入
 stop_word_list = txt_to_list("./setting/stopwords_chinese.txt")
 print('stop_word_list loaded')
-# 指定文字檔路徑
+# 啟動詞表載入
 action_word_list = txt_to_list("./setting/action_word_list.txt")
 ####################################################################
 
-
-####################################################################
-# Import modules of wordCloud
-import matplotlib.pyplot as plt
-plt.switch_backend('Agg')
-from wordcloud import WordCloud
-####################################################################
 
 ####################################################################
 # Import modules of mongo_connector(For process_sentence)
@@ -58,7 +65,6 @@ from sentence_transformers import SentenceTransformer, util
 sbert_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
 print('sbert_model loaded')
 ####################################################################
-
 
 
 ####################################################################
@@ -81,6 +87,8 @@ def embedding_sentence(sentence):
             "state" : False,
             "value" : str(exp),
         }
+####################################################################
+
 
 ####################################################################
 ## 整理文本並注入資料
@@ -119,6 +127,7 @@ def process_sentence(sentence, process_injectionword_setup=True):
     # 将词列表拼接成句子
     sentence = ' '.join(word_list)
     return sentence
+####################################################################
 
 
 ####################################################################
@@ -135,16 +144,13 @@ def load_stopwords(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
         stopwords = set(file.read().split())
     return stopwords
-
 # Load Chinese stop words
 stopwords_file = "setting/stopwords_chinese.txt"
 stopwords = load_stopwords(stopwords_file)
 print("Load Chinese stop words Done")
-
 # Generate a word cloud image
 chinese_font_path = "static/others/jf-openhuninn-2.0.ttf"
 print("Load Chinese font Done")
-
 def generate_wordcloud(input_string, filename="0_wordcloud"):
     try:
         # Process the input string

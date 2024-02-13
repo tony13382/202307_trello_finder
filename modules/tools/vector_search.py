@@ -9,6 +9,8 @@ MILVUS_PATH = config['milvus']['path']
 MILVUS_PORT = config['milvus']['port']
 MILVUS_DB_NAME = config['milvus']['db_name']
 
+RESULT_LIMIT = config["search_filter"]["result_limit_max"]
+
 ARTICLE_COLLECTION = config['milvus']['search_config']['article']['collection_name']
 ARTICLE_INDEX_TYPE = config['milvus']['search_config']['article']['index_type']
 ARTICLE_METRIC_TYPE = config['milvus']['search_config']['article']['metric_type']
@@ -40,7 +42,8 @@ keyword_collection = Collection(KEYWORD_COLLECTION)
 
 ####################################################################
 ## 搜尋 Top-K 相似文章
-def search_article_vector(query_vector, limit=10, offset=0):
+####################################################################
+def search_article_vector(query_vector, limit=RESULT_LIMIT, offset=0):
     try:
         # Start searching
         results = article_collection.search(
@@ -84,7 +87,8 @@ def search_article_vector(query_vector, limit=10, offset=0):
 
 ####################################################################  
 ## 搜尋 Top-K 相似關鍵字
-def search_keyword_vector(query_vector, limit=10, offset=0):
+####################################################################
+def search_keyword_vector(query_vector, limit=RESULT_LIMIT, offset=0):
     try:
         # Start searching
         results = keyword_collection.search(
