@@ -1,51 +1,51 @@
 # Please Rename this file to config.yml
 flask:
-    port: 5000
+    port: 5000 # Int
 mongodb:
-    path: 
-    username: ""
-    password: ""
-    db_name: ""
-    article_db: ""
-    keyword_db: ""
-    keyword_record_db: ""
-    injection_db: ""
-    log_db: ""
+    path: "" # String
+    username: "" # String
+    password: "" # String
+    db_name: "" # String
+    article_db: "" # String
+    keyword_db: "" # String
+    keyword_record_db: "" # String
+    injection_db: "" # String
+    log_db: "" # String
 search_filter:
-    result_limit_max: 20
-    tf_score_min: 0.01
-    sbert_article_distence_min: 0.75
+    result_limit_max: 20 # Int
+    tf_score_min: 0.01 # Float
+    sbert_article_distence_min: 0.75 # Float
     weight_of_vector:
-        original: 1
-        injection: 3
+        original: 1 # Int
+        injection: 3 # Int
 milvus:
-    path: "localhost"
-    port: 19530
-    db_name: "default"
+    path: "localhost" # String
+    port: 19530 # Int
+    db_name: "default" # String
     search_config:
         basic:
-            index_type: "FLAT"
-            metric_type: "IP"
+            index_type: "FLAT" # String
+            metric_type: "IP" # String
         article:
-            collection_name: ""
-            index_type: "FLAT"
-            metric_type: "IP"
-            article_filter: 5
+            collection_name: "" # String
+            index_type: "FLAT" # String
+            metric_type: "IP" # String
+            article_filter: 5 # Int
         keyword:
-            collection_name: ""
-            index_type: "FLAT"
-            metric_type: "L2"
+            collection_name: "" # String
+            index_type: "FLAT" # String
+            metric_type: "L2" # String
 rabbitMQ:
-    host: "localhost"
-    port: 5672
-    username: ""
-    password: ""
+    host: "localhost" # String
+    port: 5672 # Int
+    username: "" # String
+    password: "" # String
 trello:
-    api_key: ""
-    token: ""
-    request_limit: 20
+    api_key: "" # String
+    token: "" # String
+    request_limit: 20 # Int
 answer_core:
-    anthropic: ""
+    anthropic: "" # String
     # anthropic_api_key
-    open_ai: ""
+    open_ai: "" # String
     # openai_api_key
