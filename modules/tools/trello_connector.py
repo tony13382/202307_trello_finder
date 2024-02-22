@@ -43,7 +43,11 @@ def updateDataToCard(card_id,data):
         params=query
     )
     # 輸出結果
-    print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
+    #print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
+    print("+----------------------------+")
+    print("卡片資料更新成功",response.status_code)
+    print(f"Card_id: {card_id}\nData: {data}")
+    print("+----------------------------+")
 ####################################################################
 
 
@@ -73,10 +77,10 @@ def addCommentToCard(card_id,msgString):
         params=query
     )
     # 輸出結果
-    print("CardID:", card_id, "Msg:", msgString)
     #print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
     print("+----------------------------+")
-    print("卡片下留言(純文字)成功")
+    print("卡片下留言(純文字)成功",response.status_code)
+    print("CardID:", card_id, "Msg:", msgString)
     print("+----------------------------+")
 ####################################################################
 
@@ -95,7 +99,9 @@ def addFileToCard(card_id,file_path):
     response = requests.post(url, params=params, files=files)
     data = response.json()
     attachment_id = data["id"]
-    print("Upload Done. ",attachment_id)
+    # 輸出結果
+    print("Add File To Card Done. ", response.status_code)
+    print("Upload Done. ID:",attachment_id)
     return attachment_id
 ####################################################################
 
@@ -116,7 +122,7 @@ def addCoverToCard(card_id,img_path):
     #print(response.json())
     # 輸出結果
     print("+----------------------------+")
-    print("封面設置成功")
+    print("封面設置成功",response.status_code)
     print("+----------------------------+")
 ####################################################################
     
@@ -150,11 +156,12 @@ def getCommentsFromCard(card_id, filter = True):
     # request 結果轉換成 list
     if response.status_code == 200:
         req_objects = json.loads(response.text)
-        # 篩除由系統自動產生的留言
         for req_object in req_objects:
             create_id = req_object.get("idMemberCreator",None)
+            # 如果沒有留言者 ID 則跳過
             if create_id is None:
                 continue
+            # 篩除由系統自動產生的留言
             elif filter is True and create_id == TRELLO_BOT_ID:
                 continue
             else:
