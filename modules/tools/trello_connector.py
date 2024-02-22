@@ -12,7 +12,7 @@ with open('config.yml', 'r', encoding='utf-8') as config_File:
     config = yaml.safe_load(config_File)
 TRELLO_API_KEY = config['trello']['api_key']
 TRELLO_API_TOKEN = config['trello']['token']
-
+TRELLO_BOT_ID = config['trello']['id_of_trello_bot']
 ####################################################################
 
 
@@ -73,7 +73,8 @@ def addCommentToCard(card_id,msgString):
         params=query
     )
     # 輸出結果
-    print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
+    print("CardID:", card_id, "Msg:", msgString)
+    #print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
     print("+----------------------------+")
     print("卡片下留言(純文字)成功")
     print("+----------------------------+")
@@ -117,4 +118,77 @@ def addCoverToCard(card_id,img_path):
     print("+----------------------------+")
     print("封面設置成功")
     print("+----------------------------+")
+####################################################################
+    
+
+####################################################################
+# 取得卡片留言
+# Request Value:
+# card_id : String (Trello Card ID)
+####################################################################
+def getCommentsFromCard(card_id, filter = True):
+    # API 連結設定
+    print(f"Card_id: {card_id}")
+    url = f"https://api.trello.com/1/cards/{card_id}/actions"
+    # 設定標頭
+    headers = { "Accept": "application/json" }
+    # 設定查詢參數
+    query = {
+        'filter': 'commentCard',
+        'key': TRELLO_API_KEY,
+        'token': TRELLO_API_TOKEN
+    }
+    # 發送請求
+    response = requests.request(
+        method = "GET",
+        url = url,
+        headers=headers,
+        params=query
+    )
+    # 設定留言清單
+    comments_list = []
+    # request 結果轉換成 list
+    if response.status_code == 200:
+        req_objects = json.loads(response.text)
+        # 篩除由系統自動產生的留言
+        for req_object in req_objects:
+            create_id = req_object.get("idMemberCreator",None)
+            if create_id is None:
+                continue
+            elif filter is True and create_id == TRELLO_BOT_ID:
+                continue
+            else:
+                comments_list.append({
+                    "create_id": create_id,
+                    "comment_str": req_object.get("data",{}).get("text","")
+                })
+    # 輸出結果
+    return comments_list
+####################################################################
+
+
+####################################################################
+# 取得卡片標題
+# Request Value:
+# card_id : String (Trello Card ID)
+####################################################################
+def getCardTitle(card_id):
+    # API 連結設定
+    url = f"https://api.trello.com/1/cards/{card_id}"
+    # 設定標頭
+    headers = { "Accept": "application/json" }
+    # 設定查詢參數
+    query = {
+        'key': TRELLO_API_KEY,
+        'token': TRELLO_API_TOKEN
+    }
+    # 發送請求
+    response = requests.request(
+        method = "GET",
+        url = url,
+        headers=headers,
+        params=query
+    )
+    # 輸出結果
+    return json.loads(response.text).get("name","")
 ####################################################################

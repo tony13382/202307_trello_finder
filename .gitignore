@@ -8,7 +8,7 @@ static/images/new_wordCloud/*
 static/images/wordCloud/*
 docs/jf-openhuninn-2.0.ttf
 .tmp.driveupload
-*.env
+.tmp.drivedownload
 post.ipynb
 config.json
 config.yml

@@ -46,20 +46,79 @@ def check_is_done(input_string):
     else:
         return False
 ####################################################################
-    
+
+
+####################################################################
+# Check Trello is Create Card and Contain Action Word
+####################################################################
+def checkIsSearchType(req):
+    try:
+        if req.get("action", {}).get("type") is not None:
+            if(req["action"]["type"] == "createCard"):
+                print("偵測到新增卡片")
+                # 取得卡片名稱與 ID
+                user_input = req["action"]["data"]["card"]["name"]
+                card_id = req["action"]["data"]["card"]["id"]
+                # 檢查是否重複呼叫
+                if mongo_connector.check_has_record(card_id) is True:
+                    print("\033[0;31m 重複呼叫 停止執行. \033[0m\n")
+                    print("====================")
+                    return False
+                # 檢查是否包含動作關鍵字
+                if(check_action_word(user_input,action_word_list)):
+                    return True
+                else:
+                    print("不包含動作關鍵字: ",user_input)
+                    return False
+            else:
+                return False
+        else:
+            return False
+    except Exception as exp:
+        print("\033[0;31m 無法偵測到新增卡片 \033[0m\n \n",exp)
+        return False
+####################################################################
+
+
+####################################################################
+# Check Trello is Comment Action and Contain Trello Bot Tag
+####################################################################
+TRELLO_BOT_ID = config['trello']['id_of_trello_bot']
+TRELLO_BOT_TAG = config['trello']['tag_of_trello_bot']
+def checkIsCommentType(req):
+    try:
+        if req.get("action", {}).get("type") is not None:
+            if(req["action"]["type"] == "commentCard"):
+                print("偵測到留言")
+                # 取得用戶 ID
+                user_id = req["action"]["idMemberCreator"]
+                # 取得留言內容
+                user_input = req["action"]["data"]["text"]
+                # 檢查格式 1. 留言包含特定文本 2. 留言者不是機器人
+                if user_id != TRELLO_BOT_ID and TRELLO_BOT_TAG in user_input:
+                    return True
+                else:
+                    print("留言者是機器人或不包含特定文本")
+                    return False
+    except Exception as exp:
+        print("\033[0;31m 偵測留言錯誤 \033[0m\n \n",exp)
+        return False
+####################################################################
 
 
 ####################################################################
 # API Server
 ####################################################################
 
+# 圖床設定
 app = Flask(__name__,static_url_path='/imgs',static_folder='static/images/')
 
+# 首頁
 @app.route('/',methods=['GET'])
 def index():
     return render_template('index.html')
 
-
+# Webhook 路由
 @app.route('/webhook3',methods=['POST','HEAD','GET'])
 def webhook_v3_post():
     if request.method == 'POST':
@@ -68,37 +127,30 @@ def webhook_v3_post():
             req = request.json
             try:
                 # 確保資料結構有 [action][type] 這個屬性
-                if req.get("action", {}).get("type") is not None:
-                    # 輸出資料
-                    print("偵測到 Trello Action",req["action"]["type"])
-                    # 判斷是否為新增卡片
-                    if(req["action"]["type"] == "createCard"):
-                        print("偵測到新增卡片")
-                        # 取得卡片名稱與 ID
-                        user_input = req["action"]["data"]["card"]["name"]
-                        card_id = req["action"]["data"]["card"]["id"]
-                        # 檢查是否重複呼叫
-                        if mongo_connector.check_has_record(card_id):
-                            print("\033[0;31m 重複呼叫 停止執行. \033[0m\n")
-                            print("====================")
-                            return ("", 200)
-                        # 檢查是否包含動作關鍵字
-                        if(check_action_word(user_input,action_word_list)):
-                            # 發送任務給 RabbitMQ
-                            rabbitmq_connector.send_trello_mission(data={
-                                'card_id': card_id,
-                                'input_string': user_input,
-                                'trello_req': req
-                            })
-                            return ("", 200)
-                        else:
-                            print("不包含動作關鍵字: ",user_input)
-                            return ("", 200)
-                    else:
-                        return ("", 200)
+                if checkIsSearchType(req) is True:
+                    # 發送任務給 RabbitMQ
+                    rabbitmq_connector.send_trello_mission(data={
+                        'card_id': req["action"]["data"]["card"]["id"],
+                        'input_string': req["action"]["data"]["card"]["name"],
+                        'trello_req': req
+                    })
+                    return ("", 200)
+                elif checkIsCommentType(req) is True:
+                    print("偵測到留言")
+                    user_id = req["action"]["idMemberCreator"]
+                    card_id = req["action"]["data"]["card"]["id"]
+                    user_input = req["action"]["data"]["text"]
+                    print(f"{user_id}: {user_input}")
+                    rabbitmq_connector.send_trello_discuess(data={
+                        'card_id': card_id,
+                        'input_string': user_input,
+                        'trello_req': req
+                    })
+                else:
+                    return ("", 200)
                         
             except Exception as exp:
-                print("\033[0;31m Cannot 偵測到新增卡片 \033[0m\n \n",exp)
+                print("\033[0;31m 判斷核心錯誤 \033[0m\n \n",exp)
         except:
             print("\033[0;31m Null Request, It may be a check request \033[0m\n")
             

@@ -11,8 +11,8 @@ import modules.search_engine.search_engine as search_engine
 import modules.tools.process_words as process_words
 # MongoDB （用於儲存任務執行記錄）
 import modules.tools.mongo_connector as mongo_connector
-# Answer Core 模組
-#import modules.tools.answer_core as answer_core
+# Answer Core 模組 (用於 GPT-3.5 回答)
+import modules.tools.answer_core as ai_core
 # 用於 rabbitMQ （接收訊息）
 import pika
 import json
@@ -33,6 +33,7 @@ RABBITMQ_HOST = config['rabbitMQ']['host']
 RABBITMQ_PORT = config['rabbitMQ']['port']
 RABBITMQ_USERNAME = config['rabbitMQ']['username']
 RABBITMQ_PASSWORD = config['rabbitMQ']['password']
+RABBITMQ_SEARCH_QUEUE = config['rabbitMQ']['search_queue']
 ####################################################################
 
 
@@ -52,6 +53,9 @@ def trello_mission(card_id, input_string):
     #===========================
     # 設定索引文字
     query_string = input_string
+    #===========================
+    # 進行文字處理( AI 取得關鍵字)
+    query_string = ai_core.get_keyword(query_string)
     # 移除動作詞
     for action_word in action_word_list:
         if action_word in query_string:
@@ -89,7 +93,6 @@ def trello_mission(card_id, input_string):
             'card_id' : card_id,
             'input_string' : input_string,
         }
-    
     if return_data["mix"].get("state", False) is True:
         trello_connector.addCommentToCard(
             card_id, 
@@ -103,7 +106,6 @@ def trello_mission(card_id, input_string):
             'card_id' : card_id,
             'input_string' : input_string,
         }
-    
     if return_data["tf"].get("state", False) is True:
         trello_connector.addCommentToCard(
             card_id, 
@@ -154,7 +156,6 @@ def trello_mission(card_id, input_string):
     print("搜索結束")
 
     # GPT-3 回答
-    
     """
     answer = answer_core.qa_by_gpt3(query_string)
     if answer["state"] is True:
@@ -168,6 +169,7 @@ def trello_mission(card_id, input_string):
         "state" : True,
         "search_result" : return_data
     }
+####################################################################
 
 
 ####################################################################
@@ -197,7 +199,8 @@ def save_data_to_db(trello_mission_rq):
             msg = "執行失敗\n" + str(trello_mission_rq["err_msg"]), 
             more_info= trello_mission_rq
         )
-    
+####################################################################
+        
     
 ####################################################################
 # RabbitMQ 訊息接收
@@ -224,7 +227,7 @@ def callback(ch, method, properties, body):
     else:
         # 如果資料為空，則回傳錯誤
         print("\033[0;31m Get Null Data. Please Check Again. \033[0m\n")
-
+####################################################################
     
     
 ####################################################################
@@ -235,9 +238,9 @@ parameters = pika.ConnectionParameters(RABBITMQ_HOST, RABBITMQ_PORT, '/', creden
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 # 声明一个队列
-channel.queue_declare(queue='trello_mission')
+channel.queue_declare(queue = RABBITMQ_SEARCH_QUEUE)
 # 设置消息回调函数
-channel.basic_consume(queue='trello_mission', on_message_callback=callback, auto_ack=True)
-print(' [*] Waiting for messages. To exit press CTRL+C')
+channel.basic_consume(queue = RABBITMQ_SEARCH_QUEUE, on_message_callback=callback, auto_ack=True)
+print(f' [*] Q:{RABBITMQ_SEARCH_QUEUE}| Waiting for messages. To exit press CTRL+C')
 channel.start_consuming()
 ####################################################################
