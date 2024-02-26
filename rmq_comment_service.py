@@ -77,7 +77,7 @@ def process_comment(card_id=""):
     prompt_list = [
         {
             "role": "system",
-            "content": f"你是一位使用繁體中文的自然科學中學老師正在跟學生交談，主要工作內容會協助中學生研究{card_target}，如果學生有問題則需要根據問題回答，如果學生沒有問題則根據研究主題提出相關問題給學生讓學生回答以促進學生對{card_target}深度思考。"
+            "content": f"你是一位使用繁體中文的自然科學中學老師正在跟學生交談，主要工作內容會協助中學生研究{card_target}，如果學生有問題則需要根據問題簡單的回答，如果學生沒有問題則基於{card_target}提出相關問題給學生讓學生回答。回答的格式請採用 Markdown 語法。"
         }
     ]
     for comment_obj in comments_list:
@@ -105,17 +105,20 @@ def process_comment(card_id=""):
     request_str = answer_core.get_gpt_response(
         prompt = prompt_list,
         temperature = 0.5,
+        model = "gpt-4-0125-preview"
     )
     trello_connector.addCommentToCard(
         card_id = card_id,
         msgString = request_str + FOOTER_OF_BOT_REQ
     )
+    # 更新留言紀錄
+    comments_list.append({
+        "create_id": TRELLO_BOT_ID,
+        "comment_str": request_str
+    })
     mongo_connector.update_comment_record(
         card_id = card_id,
-        comments_list = comments_list.append({
-            "create_id": TRELLO_BOT_ID,
-            "comment_str": request_str
-        })
+        comments_list = comments_list
     )
     # 渲染標題（結束）
     trello_connector.updateDataToCard(card_id, {

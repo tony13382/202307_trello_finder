@@ -44,7 +44,7 @@ trello:
     api_key: "" # String
     token: "" # String
     request_limit: 20 # Int
-answer_core:
+ai_core:
     anthropic: "" # String
     # anthropic_api_key
     open_ai: "" # String

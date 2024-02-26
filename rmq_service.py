@@ -129,8 +129,8 @@ def trello_mission(card_id, input_string):
     # 如果搜尋結果為空，則上傳 not_found.png
     if(len(return_data["tf"]["alist"]) + len(return_data["mix"]["alist"]) + len(return_data["sbert"]) == 0):
         trello_connector.addCoverToCard(
-            card_id,
-            "./static/images/not_found.png"
+            card_id = card_id,
+            img_path = "static/images/not_found.png"
         )
     else:
         # 根據回應文字雲文字產生文字雲（tf 權重 3、mix 權重 2、sbert 權重 1）
@@ -154,16 +154,6 @@ def trello_mission(card_id, input_string):
             "name" : f"[已完成] {input_string}",
         })
     print("搜索結束")
-
-    # GPT-3 回答
-    """
-    answer = answer_core.qa_by_gpt3(query_string)
-    if answer["state"] is True:
-        trello_connector.addCommentToCard(
-            card_id, 
-            f"**參考回答：**\n --- \n\n{answer['value']} \n --- \n此為 GPT-3.5 模型回答，僅供參考。"
-        )
-    """
     # 回傳執行成功資料
     return {
         "state" : True,

@@ -5,7 +5,7 @@
 import yaml
 with open('config.yml', 'r', encoding='utf-8') as config_File:
     config = yaml.safe_load(config_File)
-OPENAI_MAX_TOKENS = config["answer_core"]["open_ai_max_tokens"]
+OPENAI_MAX_TOKENS = config["ai_core"]["open_ai_max_tokens"]
 ####################################################################
 
 
@@ -28,7 +28,7 @@ def check_token_in_limit(text):
 # OpenAI API Key & Settings
 ####################################################################
 from openai import OpenAI
-OPENAI_API_KEY = config["answer_core"]["open_ai"]
+OPENAI_API_KEY = config["ai_core"]["open_ai"]
 OPENAI_GPT_MODEL = "gpt-3.5-turbo-16k"
 client = OpenAI(
     api_key = OPENAI_API_KEY,
