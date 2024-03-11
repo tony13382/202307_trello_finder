@@ -43,3 +43,4 @@ def calc_array_mean(set, len_array):
             sum_array += item['array'] * item['weight']
 
     return sum_array / sum_weight
+####################################################################

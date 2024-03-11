@@ -331,7 +331,7 @@ def update_comment_record(card_id, comments_list):
     try:
         print("同步備份")
         backupClient = MongoClient("mongodb://100.90.12.119:27017/")
-        backup_comment_record = backupClient.nthu_trello_helper.trello_log
+        backup_comment_record = backupClient.nthu_trello_helper.comment_record
         # 插入 MongoDB
         # 找尋是否有紀錄
         matching_record = backup_comment_record.find_one({"card_id": card_id})

@@ -19,6 +19,11 @@ KEYWORD_COLLECTION = config['milvus']['search_config']['keyword']['collection_na
 KEYWORD_INDEX_TYPE = config['milvus']['search_config']['keyword']['index_type']
 KEYWORD_METRIX_TYPE = config['milvus']['search_config']['keyword']['metric_type']
 
+
+SENTENCE_COLLECTION = config['milvus']['search_config']['sentence']['collection_name']
+SENTENCE_INDEX_TYPE = config['milvus']['search_config']['sentence']['index_type']
+SENTENCE_METRIX_TYPE = config['milvus']['search_config']['sentence']['metric_type']
+
 ####################################################################
 
 
@@ -37,6 +42,7 @@ conn = connections.connect(
 # 建立 collection
 article_collection = Collection(ARTICLE_COLLECTION)
 keyword_collection = Collection(KEYWORD_COLLECTION)
+sentence_collection = Collection(SENTENCE_COLLECTION)
 ####################################################################
 
 
@@ -116,6 +122,50 @@ def search_keyword_vector(query_vector, limit=RESULT_LIMIT, offset=0):
                     "distance" : hit.distance,
                     "preview" : hit.entity.get('preview_str'),
                     "track_id" : hit.entity.get('link_id'),
+                })
+        # End of Searching and return the value
+        return {
+            "state" : True,
+            "value" : return_array,
+        }
+    except Exception as exp:
+        return {
+            "state" : False,
+            "value" : str(exp),
+        }
+####################################################################
+    
+
+####################################################################
+## 搜尋 Top-K 相似句子
+####################################################################
+def search_sentence_vector(query_vector, limit=RESULT_LIMIT, offset=0):
+    try:
+        # Start searching
+        results = sentence_collection.search(
+            data = [query_vector], 
+            anns_field = "vector", 
+            param = {
+                "index_type": SENTENCE_INDEX_TYPE,
+                "metric_type": SENTENCE_METRIX_TYPE, 
+                "params": {"nprobe": 1},      
+            },
+            limit = limit, 
+            offset = offset,
+            expr = None,
+            # set the names of the fields you want to retrieve from the search result.
+            output_fields=['sentence', 'article_id'],
+            consistency_level = "Strong"
+        )
+        print(results)
+        # return the value
+        return_array = []
+        for hits in results:
+            for hit in hits:
+                return_array.append({
+                    "distance" : hit.distance,
+                    "preview" : hit.entity.get('sentence'),
+                    "track_id" : hit.entity.get('article_id'),
                 })
         # End of Searching and return the value
         return {

@@ -186,3 +186,31 @@ def generate_wordcloud(input_string, filename="0_wordcloud"):
             "value" : str(exp),
         }
 ####################################################################
+    
+
+####################################################################
+# Get token size of openai
+# 參考資料：
+# https://github.com/DjangoPeng/openai-quickstart/blob/main/openai_api/count_tokens_with_tiktoken.ipynb
+#-------------------
+# Request Value
+# sentence : String
+#-------------------
+# Response Value
+# state : Boolean
+# value : int
+####################################################################
+import tiktoken
+encoding = tiktoken.get_encoding("cl100k_base")
+def get_token_size(sentence):
+    try:
+        return {
+            "state" : True,
+            "value" : len(encoding.encode(sentence)),
+        }
+    except Exception as exp:
+        return {
+            "state" : False,
+            "value" : str(exp),
+        }
+####################################################################
