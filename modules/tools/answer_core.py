@@ -50,8 +50,10 @@ def get_gpt_response(prompt = None, file_gpt_ids = None, temperature = 0.1, mode
         file_gpt_ids = []
     # 檢查 Token 數量是否超過限制
     combine_str = ""
+    
     for con in prompt:
         combine_str += con['content']
+    
     if check_token_in_limit(combine_str) == False:
         return "Token 數量超過限制"
     if prompt is None:

@@ -84,7 +84,7 @@ def generate_comment_msg(alist = None, comment_title = "", note = ""):
             # 如果文章資訊不為空，則加入 | 標號. [標題](連結)
             if a_info is not None and len(a_info) > 0:
                 counter += 1
-                comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']})\n"
+                comment_msg += f"{counter}. [{a_info['title']}]({a_info['url']}) \[編號：{a_info['link_id']}\] \n"
     # 如有有備註則加入 footer msg 分隔線＋備註
     if len(note) != 0:
         comment_msg += f"\n --- \n{note}\n"

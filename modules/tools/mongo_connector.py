@@ -256,6 +256,19 @@ def check_has_record(card_id_to_check):
         return False
 ####################################################################
     
+def get_trello_log_articles(card_id_to_check):
+    try:
+        matching_record = mongo_trello_log_collection.find_one({"card_id": card_id_to_check, "state": True})
+        return_data = []
+        for a_item in matching_record["more_info"]["tf"]["alist"]:
+            return_data.append(a_item["article_id"])
+        for a_item in matching_record["more_info"]["mix"]["alist"]:
+            return_data.append(a_item["_id"])
+        for a_item in matching_record["more_info"]["sbert"]["alist"]:
+            return_data.append(a_item)
+        return return_data
+    except:
+        return []
 
 #==================================================================#
 #==                   Insert Data To MongoDB                     ==#

@@ -154,10 +154,10 @@ def search_sentence_vector(query_vector, limit=RESULT_LIMIT, offset=0):
             offset = offset,
             expr = None,
             # set the names of the fields you want to retrieve from the search result.
-            output_fields=['sentence', 'article_id'],
+            output_fields=['sentence', 'article_id','token_size'],
             consistency_level = "Strong"
         )
-        print(results)
+        #print(results)
         # return the value
         return_array = []
         for hits in results:
@@ -166,6 +166,7 @@ def search_sentence_vector(query_vector, limit=RESULT_LIMIT, offset=0):
                     "distance" : hit.distance,
                     "preview" : hit.entity.get('sentence'),
                     "track_id" : hit.entity.get('article_id'),
+                    "token_size" : hit.entity.get('token_size'),
                 })
         # End of Searching and return the value
         return {
