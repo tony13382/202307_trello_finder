@@ -9,7 +9,8 @@ from flask import Flask, render_template, request
 import modules.tools.mongo_connector as mongo_connector
 # RabbitMQ 模組 （用於發送任務）
 import modules.tools.rabbitmq_connector as rabbitmq_connector
-
+# Trello 模組 （用於修改）
+import modules.tools.trello_connector as trello_connector
 ####################################################################
 # Setup environment value
 ####################################################################
@@ -128,11 +129,17 @@ def webhook_v3_post():
             try:
                 # 確保資料結構有 [action][type] 這個屬性
                 if checkIsSearchType(req) is True:
+                    card_title = req["action"]["data"]["card"]["name"]
                     # 發送任務給 RabbitMQ
                     rabbitmq_connector.send_trello_mission(data={
                         'card_id': req["action"]["data"]["card"]["id"],
                         'input_string': req["action"]["data"]["card"]["name"],
                         'trello_req': req
+                    })
+                    card_id = req["action"]["data"]["card"]["id"]
+                    # 更新卡片名稱
+                    trello_connector.updateDataToCard(card_id, {
+                        "name" : f"[正在等待] {card_title}",
                     })
                     return ("", 200)
                 elif checkIsCommentType(req) is True:
@@ -145,6 +152,10 @@ def webhook_v3_post():
                         'card_id': card_id,
                         'input_string': user_input,
                         'trello_req': req
+                    })
+                    card_title = trello_connector.getCardTitle(card_id,filter=True)
+                    trello_connector.updateDataToCard(card_id, {
+                        "name" : f"[正在等待] {card_title}",
                     })
                 else:
                     return ("", 200)
