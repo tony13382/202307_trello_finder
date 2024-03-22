@@ -11,6 +11,8 @@ import modules.tools.mongo_connector as mongo_connector
 import modules.tools.answer_core as answer_core
 # Token Size Get
 import modules.tools.process_words as process_words
+# Import search engine to search article
+import modules.search_engine.search_engine as search_engine
 # 用於 rabbitMQ （接收訊息）
 import pika
 import json
@@ -94,8 +96,11 @@ def get_comment_comments(card_id, max_token_size=MAX_COMMENT_TOKEN):
 # 整理文本 For (gpt_req_with_article)
 ####################################################################
 def replace_to_link(article_id):
-    url = mongo_connector.find_article_info(article_id)["url"]
-    return f" [文章編號: {article_id}]({url})"
+    article_obj = mongo_connector.find_article_info(article_id)
+    url = article_obj["url"]
+    showText = article_obj["title"]
+    return f" [ \[{showText}\] ]({url}) "
+# ------------------------------------------------------------------
 def replace_article_number(text):
     # 使用正则表达式查找格式为 [文章編號: 数字] 的文本
     # 用 get_info 函数的结果替换找到的文本
@@ -106,22 +111,59 @@ def replace_article_number(text):
     replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), replaced_text)
     pattern = r"\[文章編號:(\d+)\]"
     replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), replaced_text)
+    pattern = r"\[(\d+)\]"
+    replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), replaced_text)
     # 返回替换后的文本
     return replaced_text
-####################################################################
-
-
-####################################################################
-###                         生成回應邏輯                           ###
-####################################################################
-def gpt_req_pure(card_target,comments_list):
-    # 設定留言清單成 prompt_list
-    prompt_list = [
-        {
-            "role": "system",
-            "content": f"#zh_tw 你是一位使用繁體中文的自然科學中學老師正在跟學生交談，主要工作內容會協助中學生研究{card_target}，如果學生有問題則需要根據問題簡單的回答，如果學生沒有問題則基於{card_target}提出相關問題給學生讓學生回答。回答的格式請採用 Markdown 語法。"
+# ------------------------------------------------------------------
+def gen_prompt_by_alist(alist=None, max_token_size=MAX_ARTICLE_TOKEN):
+    # 定義以使用過的文章 ID
+    used_article_id = []
+    # 定義 Token Size
+    sum_tokens = 0
+    if alist is None or len(alist) == 0:
+        return {
+            "used_alist": used_article_id,
+            "prompt": "沒有相關資料可供參考，除非是100%確定的基礎問題否則不回答！"
         }
-    ]
+    else:
+        # 組合參考資料
+        #data_json_string = """以下是我們給付的參考資料：以 JSON 格式呈現，格式如下{article_id: 文章編號,content : 文章的實際內容,url:網站連結}\n"""
+        data_json_string = """以下是我們給付的參考資料：以 JSON 格式呈現，格式如下{article_id: 文章編號,content : 文章的實際內容}\n"""
+        # 用迴圈組合參考資料
+        for a_id in alist:
+            # 根據文章 ID 取得文章資訊
+            article_info = mongo_connector.find_article_info(a_id)
+            # 組合文章資訊
+            contnent_obj = {
+                "article_id": article_info.get("link_id", ""),
+                "content": article_info.get("content", "")
+                #"url": article_info.get("url", "")
+            }
+            # Get Token Size
+            token_size = process_words.get_token_size(
+                json.dumps(contnent_obj))["value"]
+            # 判斷是否超過最大 Token Size
+            if sum_tokens + token_size < max_token_size:
+                # 累加 Token Size
+                sum_tokens += token_size
+                # 累加參考資料
+                data_json_string = data_json_string + \
+                    json.dumps(contnent_obj, ensure_ascii=False) + "\n"
+                # 紀錄使用過的文章 ID
+                used_article_id.append(a_id)
+            else:
+                break
+        # 輸出
+        print(f"Used Ids: {used_article_id}")
+        # 返回結果
+        return {
+            "used_alist": used_article_id,
+            "prompt": data_json_string
+        }
+# ------------------------------------------------------------------
+def gen_prompt_by_comments(comments_list=None):
+    new_prompts = []
     for comment_obj in comments_list:
         # 取得留言者 ID
         create_id = comment_obj.get("create_id", None)
@@ -139,27 +181,69 @@ def gpt_req_pure(card_target,comments_list):
             else:
                 data_role = "user"
             # Set prompt
-            prompt_list.append({
+            new_prompts.append({
                 "role": data_role,
                 "content": comment_str
             })
-    # -----------------------------------
-    # 準備 GPT Request
-    request_str = answer_core.get_gpt_response(
-        prompt=prompt_list,
-        temperature=0.5,
-        model="gpt-4-0125-preview"
-    )
-    # -----------------------------------
-    for prompt in prompt_list:
-        print(prompt)
-    print("-----------------------------------")
-    print(request_str)
-    return {
-        "prompt_list": prompt_list,
-        "request_str": request_str
-    }
+    return new_prompts
 # ------------------------------------------------------------------
+def search_and_update_alist(search_method, user_input, used_alist):
+    """
+    對指定的搜索方法進行搜索，並根據搜索結果更新文章列表和提示信息。
+
+    :param search_method: 搜索引擎的搜索方法
+    :param user_input: 用戶輸入的搜尋關鍵字
+    :param used_alist: 已經使用過的文章ID列表
+    :return: 更新後的添加文章標誌、提示信息和文章ID列表
+    """
+    # 使用指定的搜索方法進行搜索
+    search_result = search_method(user_input=user_input)
+    if search_result["state"] is True:
+        # 從搜索結果中提取文章ID，支持不同鍵名的ID字段
+        article_ids = [article_object.get("article_id") or article_object.get("_id")
+                       for article_object in search_result.get("alist", [])]
+        # 更新已使用的文章ID列表
+        used_alist += article_ids
+        # 生成提示信息
+        convert_object = gen_prompt_by_alist(used_alist)
+        prompt = convert_object.get("prompt", "")
+        # 返回是否可添加文章的標誌、提示信息和更新後的文章ID列表
+        return convert_object.get("can_add", False), prompt, used_alist
+    # 如果搜索結果的狀態不是True，返回None
+    return None, None, used_alist
+# ------------------------------------------------------------------
+def gen_data_prompt_by_str(card_target, target_of_last_comment):
+    used_alist = []
+    prompt = ""
+    can_add_article = True
+    # 組合用戶輸入的關鍵字
+    user_input = card_target + " " + target_of_last_comment
+    # 初始化添加文章的標誌
+    can_add_article = True
+    # 進行第一次搜索並根據結果更新文章列表和提示信息 TF
+    if can_add_article:
+        can_add_article, prompt, used_alist = search_and_update_alist(
+            search_engine.tf, user_input, used_alist)
+    # 如果還可以添加文章，進行第二次搜索 MIX
+    if can_add_article:
+        can_add_article, prompt, used_alist = search_and_update_alist(
+            search_engine.sbert_mix_tf, user_input, used_alist)
+    # 如果仍然可以添加文章，進行第三次搜索 SBERT
+    if can_add_article:
+        can_add_article, prompt, used_alist = search_and_update_alist(
+            search_engine.sbert, user_input, used_alist)
+    # 返回結果
+    return {
+        "used_alist": used_alist,
+        "prompt": prompt
+    }
+####################################################################
+
+
+
+####################################################################
+###                         生成回應邏輯                           ###
+####################################################################
 def gpt_req_with_article(card_id,card_target,comments_list):
     print("處理 prompt 文章資料")
     # Get Article Info
@@ -167,36 +251,48 @@ def gpt_req_with_article(card_id,card_target,comments_list):
     # 組合參考資料
     sum_tokens = 0
     used_article_id = []
-    data_json_string = """以下是我們給付的參考資料：以 JSON 格式呈現，格式如下{article_id: 文章編號,content : 文章的實際內容,url:網站連結}\n"""
-    for a_id in topic_articles:
-        article_info = mongo_connector.find_article_info(a_id)
-        contnent_obj = {
-            "article_id": article_info.get("link_id", ""),
-            "content" : article_info.get("content", ""),
-            "url": article_info.get("url", "")
-        }
-        # Get Token Size
-        token_size = process_words.get_token_size(json.dumps(contnent_obj))["value"]
-        if sum_tokens + token_size < MAX_ARTICLE_TOKEN:
-            sum_tokens += token_size
-            data_json_string += json.dumps(contnent_obj, ensure_ascii=False)
-            used_article_id.append(a_id)
-        else:
-            break
+    if(len(topic_articles) > 0):
+        data_json_string = """以下是我們給付的參考資料：以 JSON 格式呈現，格式如下{article_id: 文章編號,content : 文章的實際內容,url:網站連結}\n"""
+        for a_id in topic_articles:
+            article_info = mongo_connector.find_article_info(a_id)
+            contnent_obj = {
+                "article_id": article_info.get("link_id", ""),
+                "content" : article_info.get("content", ""),
+                "url": article_info.get("url", "")
+            }
+            # Get Token Size
+            token_size = process_words.get_token_size(json.dumps(contnent_obj))["value"]
+            if sum_tokens + token_size < MAX_ARTICLE_TOKEN:
+                sum_tokens += token_size
+                data_json_string += json.dumps(contnent_obj, ensure_ascii=False)
+                used_article_id.append(a_id)
+            else:
+                break
+    else:
+        data_json_string = "無相關參考資料，除非是基本定義否則不予回答。"
     # -----------------------------------
     # 組合 prompt 清單
     basic_list = [
         {
             "role": "system",
-            "content": f"#zh_tw 你是一位使用繁體中文的自然科學中學老師正在跟學生交談，主要工作內容會協助中學生研究{card_target}，如果學生有問題則需要根據結合參考資料與問題進行回答並標注[文章編號]，如果參考資料無法解答問題則只能告知無法回應。學生沒有問題則基於{card_target}提出相關問題給學生讓學生回答。請採用 Markdown 語法回答。"
+            "content": f"""
+                #zh_tw 
+                你是一位使用繁體中文的自然科學中學老師，正在跟剛接觸研究領域的學生交談，
+                首先學生正在研究{card_target}，而你需要幫助學生瞭解相關知識，
+                因此你需要
+                1. 基於參考資料嘗試回答學生的問題，並在回答之中強制標注[文章編號]，
+                2. 如果參考資料無法解答問題則只告知現有資料無法回答問題。
+                3. 最後無論有沒有回答，你都需要追問學生讓學生回答以促進學生對{card_target}深度思考。
+                輸出的文本需要基於 Markdown 語法。
+            """
         },
         {
             "role": "system",
             "content": data_json_string
         }
     ]
-    prompt_list2 = []
-    prompt_list2 += basic_list
+    gpt_prompt = []
+    gpt_prompt += basic_list
     for comment_obj in comments_list:
         # 取得留言者 ID
         create_id = comment_obj.get("create_id", None)
@@ -214,7 +310,7 @@ def gpt_req_with_article(card_id,card_target,comments_list):
             else:
                 data_role = "user"
             # Set prompt
-            prompt_list2.append({
+            gpt_prompt.append({
                 "role": data_role,
                 "content": comment_str
             })
@@ -223,22 +319,82 @@ def gpt_req_with_article(card_id,card_target,comments_list):
     # 準備 GPT Request
     print("發送 GPT Request")
     request_str = answer_core.get_gpt_response(
-        prompt=prompt_list2,
-        temperature=0.5,
+        prompt=gpt_prompt,
+        temperature=0.2,
         model="gpt-4-0125-preview"
     )
     # 替换文本
     replaced_text = replace_article_number(request_str)
     #------------------------------------------------
-    for prompt in prompt_list2:
+    for prompt in gpt_prompt:
         print(prompt)
     print("-----------------------------------")
     print(replaced_text)
     print("-----------------------------------")
     print(f"使用文章 ID：{used_article_id}")
+    print("-----------------------------------")
+    print(f"End of Card ID: {card_id}")
     return {
-        "prompt_list": prompt_list2,
+        "prompt_list": gpt_prompt,
         "request_str": replaced_text
+    }
+# ------------------------------------------------------------------
+def gpt_answer(card_target, comments_list):
+    # 取得問題文本
+    target_of_last_comment = answer_core.get_keyword(
+        comments_list[-1].get("comment_str", ""))
+    # 生成相關提示信息
+    data_prompt_str = gen_data_prompt_by_str(
+        card_target, target_of_last_comment).get("prompt", "")
+    # 定義基礎回答方法
+    basic_list = [
+        {
+            "role": "system",
+            "content": f"#zh_tw 你是一位使用繁體中文的自然科學中學老師正在跟剛接觸研究領域的學生交談，首先學生正在研究{card_target}，因此你需要基於參考資料的內容回答學生的問題，並標注 [文章編號] ，如果參考資料無法解答問題則只能告知無法回應。輸出的文本需要基於 Markdown 語法。"
+        },
+        {
+            "role": "system",
+            "content": data_prompt_str
+        }
+    ]
+    # 組合 prompt 清單
+    push_prompt_list = []
+    push_prompt_list += basic_list
+    push_prompt_list += gen_prompt_by_comments(comments_list)
+    # 進行 GPT 回答
+    request_str = answer_core.get_gpt_response(
+        prompt=push_prompt_list,
+        temperature=0.7,
+        model= "gpt-4-turbo-preview"
+    )
+    # 替换文本
+    replaced_text = replace_article_number(request_str)
+    return {
+        "prompt_list": push_prompt_list,
+        "request_str": replaced_text
+    }
+# ------------------------------------------------------------------
+def gpt_ask(card_target, comments_list):
+    # 定義基礎回答方法
+    basic_list = [
+        {
+            "role": "system",
+            "content": f"#zh_tw 你是一位使用繁體中文的自然科學中學老師正在跟剛接觸研究領域的學生交談，首先學生正在研究{card_target}，而你需要幫助學生瞭解相關知識，因此你需要基於以下聊天內容提出問題給學生讓學生回答以促進學生對{card_target}深度思考。輸出的文本只需要問題無須標題，基於 Markdown 語法並且只需要提出問題不用轉換句。"
+        }
+    ]
+    # 組合 prompt 清單
+    push_prompt_list = []
+    push_prompt_list += basic_list
+    push_prompt_list += gen_prompt_by_comments(comments_list)
+    # 進行 GPT 回答
+    request_str = answer_core.get_gpt_response(
+        prompt=push_prompt_list,
+        temperature=0.7,
+        model="gpt-4-turbo-preview"
+    )
+    return {
+        "prompt_list": push_prompt_list,
+        "request_str": request_str
     }
 ####################################################################
 
@@ -252,9 +408,7 @@ def process_comment(card_id=""):
         print("卡片 ID 不存在")
         return 404
     # 取得卡片標題
-    card_title = trello_connector.getCardTitle(card_id)
-    # 如果卡片標題有 [已完成] 則移除
-    card_title = card_title.replace("[已完成] ", "")
+    card_title = trello_connector.getCardTitle(card_id,filter=True)
     # 取得卡片關鍵字
     card_target = answer_core.get_keyword(card_title)
     # 取得卡片留言(New to Old)
@@ -263,53 +417,42 @@ def process_comment(card_id=""):
     trello_connector.updateDataToCard(card_id, {
         "name" : f"[生成回應中] {card_title}",
     })
-    """
-    # 設定留言清單成 prompt_list
-    prompt_list = [
-        {
-            "role": "system",
-            "content": f"你是一位使用繁體中文的自然科學中學老師正在跟學生交談，主要工作內容會協助中學生研究{card_target}，如果學生有問題則需要根據問題簡單的回答，如果學生沒有問題則基於{card_target}提出相關問題給學生讓學生回答。回答的格式請採用 Markdown 語法。"
-        }
-    ]
-    for comment_obj in comments_list:
-        # 取得留言者 ID
-        create_id = comment_obj.get("create_id", None)
-        # 取得留言內容
-        comment_str = comment_obj.get("comment_str", "")
-        # 去除機器人TAG
-        comment_str = comment_str.replace(f"{TRELLO_BOT_TAG} ", "")
-        # 檢查是否為分隔符號或搜尋結果
-        if check_comment_div_or_search_result(content=comment_str) is False:
-            # Set role of prompt
-            if create_id == TRELLO_BOT_ID:
-                data_role = "system"
-                # 去除機器人回應結尾
-                comment_str = comment_str.replace( FOOTER_OF_BOT_REQ , "")
-            else:
-                data_role = "user"
-            # Set prompt
-            prompt_list.append({
-                "role": data_role,
-                "content": comment_str
-            })
-    print(prompt_list)
-    request_str = answer_core.get_gpt_response(
-        prompt = prompt_list,
-        temperature = 0.5,
-        model = "gpt-4-0125-preview"
-    )
-    """
     # 生成回應
-    request_str = gpt_req_with_article(card_id,card_target,comments_list).get("request_str", "")
+
+    #request_str = gpt_req_with_article(card_id,card_target,comments_list).get("request_str", "無相關回應可提供")
+    print("正在回答...")
+    # 生成回應
+    answer_req = gpt_answer(card_target, comments_list).get("request_str", "")
     # 留言回應
     trello_connector.addCommentToCard(
         card_id = card_id,
-        msgString = request_str + FOOTER_OF_BOT_REQ
+        msgString = answer_req + FOOTER_OF_BOT_REQ
     )
+    print("正在出題...")
+    # 新增資料到 comment_list
+    new_comments_list = comments_list + \
+        [{"create_id": "5cf78be21c83121944069409", "comment_str": answer_req}]
+    # 生成問題
+    question_req = gpt_ask(card_target, new_comments_list).get("request_str", "")
+    # 留言回應
+    trello_connector.addCommentToCard(
+        card_id = card_id,
+        msgString = "###除此之外，你可以想一想\n\n" + question_req + FOOTER_OF_BOT_REQ
+    )
+    print("生成完成！")
+    combine_rq = f"{answer_req}\n\n---\n\n{question_req}"
+    
+    # 留言回應
+    """
+    trello_connector.addCommentToCard(
+        card_id = card_id,
+        msgString = combine_rq + FOOTER_OF_BOT_REQ
+    )
+    """
     # 更新留言紀錄
     comments_list.append({
         "create_id": TRELLO_BOT_ID,
-        "comment_str": request_str
+        "comment_str": combine_rq
     })
     mongo_connector.update_comment_record(
         card_id = card_id,
@@ -349,7 +492,14 @@ def callback(ch, method, properties, body):
 # 连接到RabbitMQ服务器
 ####################################################################
 credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
-parameters = pika.ConnectionParameters(RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials)
+#parameters = pika.ConnectionParameters(RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials)
+parameters = pika.ConnectionParameters(
+    host= RABBITMQ_HOST,
+    port=RABBITMQ_PORT,
+    virtual_host='/',
+    credentials=credentials,
+    heartbeat = 180  # 設定心跳間隔為 180 秒 / 3mins
+)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 # 声明一个队列
