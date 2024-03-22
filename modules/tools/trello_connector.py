@@ -3,6 +3,9 @@
 # http://docs.python-requests.org
 import requests
 import json
+#------------------------------------------------------------------#
+
+import time
 
 ####################################################################
 # Setup Trello API Key and Token
@@ -15,6 +18,9 @@ TRELLO_API_TOKEN = config['trello']['token']
 TRELLO_BOT_ID = config['trello']['id_of_trello_bot']
 ####################################################################
 
+#******************************************************************#
+###                          編輯維度                            ####
+#******************************************************************#
 
 ####################################################################
 ## 更新 Trello 卡片資料
@@ -69,13 +75,28 @@ def addCommentToCard(card_id,msgString):
         'key': TRELLO_API_KEY,
         'token': TRELLO_API_TOKEN
     }
-    # 發送請求
-    response = requests.request(
-        "POST",
-        url,
-        headers=headers,
-        params=query
-    )
+    # 設定失敗重複次數
+    retry = 3
+    run_time = 0
+    while run_time <= retry:
+        # 發送請求
+        response = requests.request(
+            "POST",
+            url,
+            headers=headers,
+            params=query
+        )
+        if response.status_code == 200:
+            break
+        else:
+            print("+----------------------------+")
+            print("卡片下留言(純文字)失敗",response.status_code)
+            print("CardID:", card_id, "Msg:")
+            print(response.text)
+            print("+----------------------------+")
+            run_time += 1
+            time.sleep(3)
+
     # 輸出結果
     #print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
     print("+----------------------------+")
@@ -126,6 +147,11 @@ def addCoverToCard(card_id,img_path):
     print("+----------------------------+")
 ####################################################################
     
+
+#******************************************************************#
+###                          取得維度                            ####
+#******************************************************************#
+
 
 ####################################################################
 # 取得卡片留言
@@ -179,7 +205,7 @@ def getCommentsFromCard(card_id, filter = True):
 # Request Value:
 # card_id : String (Trello Card ID)
 ####################################################################
-def getCardTitle(card_id):
+def getCardTitle(card_id, filter = False):
     # API 連結設定
     url = f"https://api.trello.com/1/cards/{card_id}"
     # 設定標頭
@@ -197,5 +223,13 @@ def getCardTitle(card_id):
         params=query
     )
     # 輸出結果
-    return json.loads(response.text).get("name","")
+    return_str = json.loads(response.text).get("name","")
+    if filter is True:
+        return_str = return_str.replace("[進行中] ", "")
+        return_str = return_str.replace("[正在等待] ", "")
+        return_str = return_str.replace("[已完成] ", "")
+        return_str = return_str.replace("[生成回應中] ", "")
+        return return_str
+    else:
+        return return_str
 ####################################################################
