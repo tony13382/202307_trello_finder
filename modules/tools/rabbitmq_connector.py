@@ -25,7 +25,13 @@ import pika
 import json
 # 连接到RabbitMQ服务器
 credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSSWORD)
-parameters = pika.ConnectionParameters(RABBITMA_HOST, RABBITMQ_PORT, '/', credentials)
+parameters = pika.ConnectionParameters(
+    host= RABBITMA_HOST,
+    port=RABBITMQ_PORT,
+    virtual_host='/',
+    credentials=credentials,
+    heartbeat = 180  # 設定心跳間隔為 180 秒 / 3mins
+)
 ####################################################################
 
 

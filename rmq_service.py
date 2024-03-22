@@ -41,6 +41,7 @@ RABBITMQ_SEARCH_QUEUE = config['rabbitMQ']['search_queue']
 # Trello 任務 (搜尋、留言、封面更新)
 ####################################################################
 def trello_mission(card_id, input_string):
+    input_string = input_string.replace("[正在等待] ", "")
     # 初始化回傳資料
     return_data = {
         'card_id' : card_id,
@@ -224,7 +225,13 @@ def callback(ch, method, properties, body):
 # 连接到RabbitMQ服务器
 ####################################################################
 credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
-parameters = pika.ConnectionParameters(RABBITMQ_HOST, RABBITMQ_PORT, '/', credentials)
+parameters = pika.ConnectionParameters(
+    host= RABBITMQ_HOST,
+    port=RABBITMQ_PORT,
+    virtual_host='/',
+    credentials=credentials,
+    heartbeat = 180  # 設定心跳間隔為 180 秒 / 3mins
+)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 # 声明一个队列
