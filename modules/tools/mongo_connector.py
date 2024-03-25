@@ -24,6 +24,7 @@ mongo_trello_log_collection = db.trello_log
 mongo_word_injection_collection = db.injection_list
 mongo_keyword_collection = db.keyword2024
 mongo_keyword_record_collection = db.keyword_record2024
+mongo_trello_comment_log_collection = db.trello_comment_log
 mongo_comment_record = db.comment_record
 ####################################################################
 
@@ -312,7 +313,32 @@ def add_trello_log(card_id, state, msg, time="",more_info=""):
         print("mongo remote server has connect error.")
         print("please check tail vpn")
 ####################################################################
-        
+
+
+####################################################################
+## 新增 comment log 執行紀錄
+# Request Value
+# card_id : String (Trello Card ID)
+# state : Boolean
+# msg : String (Log Message)
+# comments_list : List (Comments List)
+# time: String (Log Time %Y-%m-%d %H:%M:%S ) 2023-07-25 12:53:41 [可選]
+####################################################################
+def add_comment_log(card_id, state, msg, comments_list, time="",more_info=""):
+    # 設定時間
+    if(len(time) < 1):
+        time = get_time_now()
+    # 插入 MongoDB
+    mongo_trello_comment_log_collection.insert_one({
+        "datetime" : time,
+        "card_id" : card_id,
+        "state" : state,
+        "msg" : msg,
+        "comments" : comments_list,
+        "more_info" : more_info,
+    })
+####################################################################
+
 
 ####################################################################
 ## 更新聊天紀錄
