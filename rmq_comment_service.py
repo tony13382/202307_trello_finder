@@ -344,8 +344,10 @@ def gpt_answer(card_target, comments_list):
     target_of_last_comment = answer_core.get_keyword(
         comments_list[-1].get("comment_str", ""))
     # 生成相關提示信息
-    data_prompt_str = gen_data_prompt_by_str(
-        card_target, target_of_last_comment).get("prompt", "")
+    prompt_obj = gen_data_prompt_by_str(
+        card_target, target_of_last_comment)
+    data_prompt_str = prompt_obj.get("prompt", "")
+    used_alist = prompt_obj.get("used_alist", [])
     # 定義基礎回答方法
     basic_list = [
         {
@@ -371,7 +373,8 @@ def gpt_answer(card_target, comments_list):
     replaced_text = replace_article_number(request_str)
     return {
         "prompt_list": push_prompt_list,
-        "request_str": replaced_text
+        "request_str": replaced_text,
+        "used_alist": used_alist
     }
 # ------------------------------------------------------------------
 def gpt_ask(card_target, comments_list):
@@ -379,7 +382,7 @@ def gpt_ask(card_target, comments_list):
     basic_list = [
         {
             "role": "system",
-            "content": f"#zh_tw 你是一位使用繁體中文的自然科學中學老師正在跟剛接觸研究領域的學生交談，首先學生正在研究{card_target}，而你需要幫助學生瞭解相關知識，因此你需要基於以下聊天內容提出問題給學生讓學生回答以促進學生對{card_target}深度思考。輸出的文本只需要問題無須標題，基於 Markdown 語法並且只需要提出問題不用轉換句。"
+            "content": f"#zh_tw 你是一位使用繁體中文的自然科學中學老師正在跟剛接觸研究領域的學生交談，首先學生正在研究{card_target}，而你需要幫助學生瞭解相關知識，因此你需要基於以下聊天內容提出問題給學生讓學生回答以促進學生對{card_target}深度思考。輸出的文本只需要問題絕對不要生成標題，我會自己加上去，輸出使用 Markdown 語法。"
         }
     ]
     # 組合 prompt 清單
@@ -418,11 +421,10 @@ def process_comment(card_id=""):
         "name" : f"[生成回應中] {card_title}",
     })
     # 生成回應
-
-    #request_str = gpt_req_with_article(card_id,card_target,comments_list).get("request_str", "無相關回應可提供")
     print("正在回答...")
     # 生成回應
-    answer_req = gpt_answer(card_target, comments_list).get("request_str", "")
+    answer_req_obj = gpt_answer(card_target, comments_list)
+    answer_req = answer_req_obj.get("request_str", "")
     # 留言回應
     trello_connector.addCommentToCard(
         card_id = card_id,
@@ -440,15 +442,28 @@ def process_comment(card_id=""):
         msgString = "###除此之外，你可以想一想\n\n" + question_req + FOOTER_OF_BOT_REQ
     )
     print("生成完成！")
-    combine_rq = f"{answer_req}\n\n---\n\n{question_req}"
     
-    # 留言回應
+    combine_rq = f"{answer_req}\n\n---\n\n{question_req}"    
     """
+    # 留言回應
     trello_connector.addCommentToCard(
         card_id = card_id,
         msgString = combine_rq + FOOTER_OF_BOT_REQ
     )
     """
+    new_comments_list = comments_list + \
+        [{"create_id": "5cf78be21c83121944069409", "comment_str": question_req}]
+    
+    mongo_connector.add_comment_log(
+        card_id = card_id,
+        state = True,
+        msg = "成功新增回應與問題！",
+        comments_list = new_comments_list,
+        more_info= {
+            "article_list" : answer_req_obj.get("used_alist", [])
+        }
+    )
+    
     # 更新留言紀錄
     comments_list.append({
         "create_id": TRELLO_BOT_ID,
@@ -456,7 +471,7 @@ def process_comment(card_id=""):
     })
     mongo_connector.update_comment_record(
         card_id = card_id,
-        comments_list = comments_list
+        comments_list = new_comments_list
     )
     # 渲染標題（結束）
     trello_connector.updateDataToCard(card_id, {
@@ -485,6 +500,12 @@ def callback(ch, method, properties, body):
     else:
         # 如果資料為空，則回傳錯誤
         print("\033[0;31m Get Null Data. Please Check Again. \033[0m\n")
+        mongo_connector.add_comment_log(
+            card_id = card_id,
+            state = False,
+            msg = "Get Null Data. Please Check Again！",
+            comments_list = []
+        )
 ####################################################################
     
     
