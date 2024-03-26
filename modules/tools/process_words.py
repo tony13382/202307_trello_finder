@@ -131,6 +131,24 @@ def process_sentence(sentence, process_injectionword_setup=True):
 
 
 ####################################################################
+## 清理動作詞
+# Request Value
+# sentence : String
+#-------------------
+# Response Value
+# => String
+####################################################################
+def clean_action_word(sentence):
+    for action_word in action_word_list:
+        if action_word in sentence:
+            sentence = sentence.replace(action_word, "")
+    if(sentence[0:1] == "#" or sentence[0:1] == "＃"):
+        sentence = sentence[1:len(sentence)]
+    return sentence
+####################################################################
+
+
+####################################################################
 ## 生成文字雲
 # Request Value
 # input_string : String

@@ -120,11 +120,8 @@ def generate_wordcloud_string(alist = None , original_string = ""):
 # TF 搜尋引擎
 def tf(user_input,except_article_ids = []):
     print("開始清理文字")
-    query_string = user_input
     # Remove input_string in action_word_list
-    for action_word in action_word_list:
-        if action_word in query_string:
-            query_string = query_string.replace(action_word, "")
+    query_string = process_words.clean_action_word(user_input)
     # 清洗文本成關鍵字列表
     query_wlist = process_words.process_sentence(query_string, process_injectionword_setup = False ).split() #只清洗文字
     # 去除易干擾文字
@@ -186,11 +183,8 @@ def tf(user_input,except_article_ids = []):
 # SBERT 搜尋引擎
 def sbert(user_input, except_article_ids = []):
     print("SBERT「文章向量加權」算法搜尋開始")
-    query_string = user_input
     # Remove input_string in action_word_list
-    for action_word in action_word_list:
-        if action_word in query_string:
-            query_string = query_string.replace(action_word, "")
+    query_string = process_words.clean_action_word(user_input)
     return_alist = []
     # 處理句子
     # 去除易干擾文字
@@ -276,11 +270,8 @@ def sbert(user_input, except_article_ids = []):
 # SBERT+TF 混合搜尋引擎
 def sbert_mix_tf(user_input, except_article_ids = []):
     print("SBERT 算法[sbert]搜尋開始")
-    query_string = user_input
     # Remove input_string in action_word_list
-    for action_word in action_word_list:
-        if action_word in query_string:
-            query_string = query_string.replace(action_word, "")
+    query_string = process_words.clean_action_word(user_input)
     # 開始注入 > Remove 常見干擾文字 | 避免易干擾字進入向量計算
     injected_sentence = remove_confuse_word(process_words.process_sentence(query_string, process_injectionword_setup = True ))
     print(f"注入文本：{query_string} \n-> {injected_sentence}")

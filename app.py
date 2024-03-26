@@ -38,7 +38,6 @@ def check_action_word(input_string, action_word_list):
     for action_word in action_word_list:
         if action_word in input_string:
             return True
-    
     return False
 # 驗證文本是否包含「已完成」關鍵字
 def check_is_done(input_string):
@@ -67,6 +66,8 @@ def checkIsSearchType(req):
                     return False
                 # 檢查是否包含動作關鍵字
                 if(check_action_word(user_input,action_word_list)):
+                    return True
+                elif user_input[0:1] == "#":
                     return True
                 else:
                     print("不包含動作關鍵字: ",user_input)

@@ -58,9 +58,8 @@ def trello_mission(card_id, input_string):
     # 進行文字處理( AI 取得關鍵字)
     query_string = ai_core.get_keyword(query_string)
     # 移除動作詞
-    for action_word in action_word_list:
-        if action_word in query_string:
-            query_string = query_string.replace(action_word, "")
+    query_string = process_words.clean_action_word(query_string)
+    # 更新索引文字
     return_data["query_string"] = query_string
     #===========================
     # 進行搜尋
