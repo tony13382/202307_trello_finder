@@ -95,26 +95,39 @@ def get_comment_comments(card_id, max_token_size=MAX_COMMENT_TOKEN):
 ####################################################################
 # 整理文本 For (gpt_req_with_article)
 ####################################################################
-def replace_to_link(article_id):
+def replace_to_link(article_id, article_ids_list):
+    article_ids_list.append(article_id)
     article_obj = mongo_connector.find_article_info(article_id)
     url = article_obj["url"]
     showText = article_obj["title"]
     return f" [ \[{showText}\] ]({url}) "
 # ------------------------------------------------------------------
 def replace_article_number(text):
-    # 使用正则表达式查找格式为 [文章編號: 数字] 的文本
-    # 用 get_info 函数的结果替换找到的文本
-    # re.sub 的第二个参数使用了一个 lambda 函数，以便传递匹配到的数字给 get_info 函数
-    pattern = r"\[文章編號: (\d+)\]"
+    """pattern = r"\[文章編號: (\d+)\]"
     replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), text)
     pattern = r"\[文章編號：(\d+)\]"
     replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), replaced_text)
     pattern = r"\[文章編號:(\d+)\]"
     replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), replaced_text)
     pattern = r"\[(\d+)\]"
-    replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), replaced_text)
-    # 返回替换后的文本
-    return replaced_text
+    replaced_text = re.sub(pattern, lambda match: replace_to_link(match.group(1)), replaced_text)"""
+    # 用來記錄所有的 article_id
+    article_ids = []
+    # 定义正则表达式模式列表
+    patterns = [
+        r"\[文章編號: (\d+)\]",
+        r"\[文章編號：(\d+)\]",
+        r"\[文章編號:(\d+)\]",
+        r"\[(\d+)\]"
+    ]
+    # 使用正则表达式查找格式为 [文章編號: 数字] 的文本
+    # 用 get_info 函数的结果替换找到的文本
+    # re.sub 的第二个参数使用了一个 lambda 函数，以便传递匹配到的数字给 get_info 函数
+    # 依次替换文本中匹配到的文章編號
+    for pattern in patterns:
+        text = re.sub(pattern, lambda match: replace_to_link(match.group(1), article_ids), text)
+    # 返回替换后的文本和记录的 article_id 列表
+    return text, article_ids
 # ------------------------------------------------------------------
 def gen_prompt_by_alist(alist=None, max_token_size=MAX_ARTICLE_TOKEN):
     # 定義以使用過的文章 ID
@@ -175,7 +188,7 @@ def gen_prompt_by_comments(comments_list=None):
         if check_comment_div_or_search_result(content=comment_str) is False:
             # Set role of prompt
             if create_id == TRELLO_BOT_ID:
-                data_role = "system"
+                data_role = "assistant"
                 # 去除機器人回應結尾
                 comment_str = comment_str.replace(FOOTER_OF_BOT_REQ, "")
             else:
@@ -244,6 +257,7 @@ def gen_data_prompt_by_str(card_target, target_of_last_comment):
 ####################################################################
 ###                         生成回應邏輯                           ###
 ####################################################################
+#---------------------------!! 棄用 !!-----------------------------#
 def gpt_req_with_article(card_id,card_target,comments_list):
     print("處理 prompt 文章資料")
     # Get Article Info
@@ -318,20 +332,21 @@ def gpt_req_with_article(card_id,card_target,comments_list):
     # -----------------------------------
     # 準備 GPT Request
     print("發送 GPT Request")
+    for prompt in gpt_prompt:
+        print(prompt)
     request_str = answer_core.get_gpt_response(
         prompt=gpt_prompt,
         temperature=0.2,
         model="gpt-4-0125-preview"
     )
     # 替换文本
-    replaced_text = replace_article_number(request_str)
+    replaced_text, answer_alist = replace_article_number(request_str)
     #------------------------------------------------
-    for prompt in gpt_prompt:
-        print(prompt)
     print("-----------------------------------")
     print(replaced_text)
     print("-----------------------------------")
-    print(f"使用文章 ID：{used_article_id}")
+    print(f"引入文章 ID：{used_article_id}")
+    print(f"使用文章 ID：{answer_alist}")
     print("-----------------------------------")
     print(f"End of Card ID: {card_id}")
     return {
@@ -370,11 +385,12 @@ def gpt_answer(card_target, comments_list):
         model= "gpt-4-turbo-preview"
     )
     # 替换文本
-    replaced_text = replace_article_number(request_str)
+    replaced_text, answer_alist = replace_article_number(request_str)
     return {
         "prompt_list": push_prompt_list,
         "request_str": replaced_text,
-        "used_alist": used_alist
+        "used_alist": used_alist,
+        "answer_alist": answer_alist
     }
 # ------------------------------------------------------------------
 def gpt_ask(card_target, comments_list):
@@ -460,7 +476,8 @@ def process_comment(card_id=""):
         msg = "成功新增回應與問題！",
         comments_list = new_comments_list,
         more_info= {
-            "article_list" : answer_req_obj.get("used_alist", [])
+            "article_list" : answer_req_obj.get("used_alist", []),
+            "gpt_used_alist" : answer_req_obj.get("answer_alist", [])
         }
     )
     
